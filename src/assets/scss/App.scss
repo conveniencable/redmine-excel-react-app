@@ -1,0 +1,67 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .main-content {
+    flex: 1 !important;
+    padding: 1rem;
+  }
+}
+
+.flex-space {
+  flex: 1;
+}
+
+
+.top-bar {
+  .menu {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+.ui.form.single-line > .inline.fields {
+  margin: 0;
+}
+
+
+.rows-flex {
+  display: flex;
+  flex-direction: row;
+}
+
+.columns-flex {
+  display: flex;
+  flex-direction: column;
+}
+
+.take-space {
+  flex: 1;
+}
+
+.ui .disabled, .ui.disabled {
+  pointer-events: none;
+}
+
+.full-height {
+  height: 100%;
+}
+
+.ui.input > .ui.dropdown {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.ui.input > .ui.dropdown.middle {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}

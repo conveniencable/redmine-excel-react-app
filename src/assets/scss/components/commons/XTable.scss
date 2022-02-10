@@ -1,0 +1,42 @@
+.xtable-scroll-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .xtable-header-wrap {
+    > table {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+
+  .xtable-content-wrap {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    height: 0px;
+
+      > table {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-top: none;
+
+        &.with-footer {
+          border-bottom-left-radius: 0;
+          border-bottom-right-radius: 0;
+          border-bottom: none;
+        }
+
+        td:last-child {
+          white-space: nowrap;
+          width: auto !important;
+        }
+      }
+  }
+
+  .xtable-footer-wrap {
+    > table {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+  }
+}

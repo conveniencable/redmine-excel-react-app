@@ -1,0 +1,63 @@
+.admin-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f4f4f4;
+
+  .admin-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .admin-main-content-body {
+      height: 100%;
+      display: flex;
+      
+      .admin-sidebar {
+        width: 255px;
+        padding: 0 1rem 1rem 1rem;
+
+        .card {
+          width: 100%;
+          margin: 1rem 0 0 0;
+
+          .content {
+            &.items {
+              padding: 0;
+            }
+
+            > .menu {
+              width: 100%;
+              border: none;
+
+              > .item {
+              }
+            }
+          }
+
+          &:not(.raised) {
+            opacity: 0.618;
+          }
+        }
+      }
+
+      .admin-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        align-items: stretch;
+        padding: 1rem 1rem 1rem 0;
+
+        >.admin-content-head {
+          margin-bottom: 0.5rem;
+        }
+
+        > .admin-content-body {
+          flex: 1;
+          background-color: #fff;
+        }
+      }
+    }
+  }
+}

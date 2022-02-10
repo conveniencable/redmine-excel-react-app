@@ -1,0 +1,15 @@
+.admin-list-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .search-form-div {
+        .fields.inline {
+            margin: 0;
+        }
+    }
+
+    .table-div {
+        flex: 1;
+    }
+}

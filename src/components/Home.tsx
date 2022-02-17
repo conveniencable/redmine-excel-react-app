@@ -17,6 +17,13 @@ import { off } from 'process';
 
 const QUERY_CACHE_KEY = '_query';
 
+// before component load
+(window as any).switchQuery = (queryStr: string) => {
+  if (queryStr) {
+    cacheQuery = JSON.parse(queryStr);
+  }
+};
+
 let cacheQuery: { projectId: number; query: QueryData } = JSON.parse(localStorage.getItem(QUERY_CACHE_KEY));
 
 export default function HomeComponent() {
@@ -98,13 +105,8 @@ export default function HomeComponent() {
     setLoading(true);
     sendCommand('saveIssues');
 
-    (window as any).saveToRedmine = (
-      headers: string[],
-      issues: string[][],
-      project_id: string,
-      unknown_parent_row_id_to_id: { [rowId: string]: string }
-    ) => {
-      httpRequest('api/issues', 'post', { headers, issues, project_id, unknown_parent_row_id_to_id }).then(resp => {
+    (window as any).saveToRedmine = (headers: string[], issues: string[][], project_id: string, row_ids_to_ids: { [rowId: string]: number }) => {
+      httpRequest('api/issues', 'post', { headers, issues, project_id, row_ids_to_ids }).then(resp => {
         if (resp.code == RespCode.OK) {
           sendCommand('afterSaveIssues', resp.data);
         } else {

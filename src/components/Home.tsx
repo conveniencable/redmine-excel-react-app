@@ -105,8 +105,8 @@ export default function HomeComponent() {
     setLoading(true);
     sendCommand('saveIssues');
 
-    (window as any).saveToRedmine = (headers: string[], issues: string[][], project_id: string, row_ids_to_ids: { [rowId: string]: number }) => {
-      httpRequest('api/issues', 'post', { headers, issues, project_id, row_ids_to_ids }).then(resp => {
+    (window as any).saveToRedmine = (headers: string[], issues: string[][], project_id: string, id_to_line_no: string[]) => {
+      httpRequest('api/issues', 'post', { headers, issues, project_id, id_to_line_no }).then(resp => {
         if (resp.code == RespCode.OK) {
           sendCommand('afterSaveIssues', resp.data);
         } else {

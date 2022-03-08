@@ -52,7 +52,7 @@ export default function HomeComponent() {
   };
 
   const onLoad = useCallback(
-    (columns: { name: string; label: string }[]) => {
+    (columns: { name: string; label: string }[], isMerge: boolean) => {
       const params: QueryParams = {
         f: [],
         op: {},
@@ -79,7 +79,7 @@ export default function HomeComponent() {
         return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
           .then(resp => {
             if (resp.code === RespCode.OK) {
-              sendCommand('loadIssues', resp.data);
+              sendCommand('loadIssues', resp.data, isMerge);
             } else {
               notificationControl.showError('Load Issue Error: ' + resp.message);
               setLoading(false);

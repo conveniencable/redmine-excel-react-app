@@ -12,7 +12,7 @@ import QuerySelector from './QuerySelector';
 export function Query(props: {
   value: { projectId: number; query: QueryData };
   onChange: (value: { projectId: number; query: QueryData }) => void;
-  onLoad: (columns: { name: string; label: string }[]) => void;
+  onLoad: (columns: { name: string; label: string }[], isMerge: boolean) => void;
   onSave: () => void;
   loadingChange: (loading: boolean) => void;
 }) {
@@ -297,10 +297,19 @@ export function Query(props: {
         <Button
           color="blue"
           onClick={() => {
-            props.onLoad(selectedColumnItems);
+            props.onLoad(selectedColumnItems, false);
           }}
         >
-          <T>button_apply</T>
+          <T>button_load</T>
+        </Button>
+
+        <Button
+          color="blue"
+          onClick={() => {
+            props.onLoad(selectedColumnItems, true);
+          }}
+        >
+          <T>button_load_and_merge</T>
         </Button>
 
         <Button color="blue" onClick={props.onSave}>

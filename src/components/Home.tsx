@@ -14,6 +14,7 @@ import ExcelList from './commons/ExcelList';
 import { RespCode } from '../models/system.model';
 import { notificationControl } from '../controls/notification-control';
 import { off } from 'process';
+import { translate } from './commons/T';
 
 const QUERY_CACHE_KEY = '_query';
 
@@ -53,50 +54,66 @@ export default function HomeComponent() {
 
   const onLoad = useCallback(
     (columns: { name: string; label: string }[], isMerge: boolean) => {
-      const params: QueryParams = {
-        f: [],
-        op: {},
-        v: {},
-        c: selectedQuery.query.columns,
-        set_filter: 1
-      };
+      const startToLoad = () => {
+        const params: QueryParams = {
+          f: [],
+          op: {},
+          v: {},
+          c: selectedQuery.query.columns,
+          set_filter: 1
+        };
 
-      if (selectedQuery.projectId) {
-        params.project_id = selectedQuery.projectId;
-      }
-
-      for (const f of selectedQuery.query.filters) {
-        if (!selectedQuery.projectId || f.fieldName !== 'project_id') {
-          params.f.push(f.fieldName);
-          params.op[f.fieldName] = f.operator;
-          params.v[f.fieldName] = f.values;
+        if (selectedQuery.projectId) {
+          params.project_id = selectedQuery.projectId;
         }
-      }
-      setLoading(true);
 
-      const loadIssues = (offset?: number, limit?: number, total_count?: number) => {
-        console.log('load issue', offset, limit);
-        return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
-          .then(resp => {
-            if (resp.code === RespCode.OK) {
-              sendCommand('loadIssues', resp.data, isMerge);
-            } else {
-              notificationControl.showError('Load Issue Error: ' + resp.message);
+        for (const f of selectedQuery.query.filters) {
+          if (!selectedQuery.projectId || f.fieldName !== 'project_id') {
+            params.f.push(f.fieldName);
+            params.op[f.fieldName] = f.operator;
+            params.v[f.fieldName] = f.values;
+          }
+        }
+        setLoading(true);
+
+        const loadIssues = (offset?: number, limit?: number, total_count?: number) => {
+          console.log('load issue', offset, limit);
+          return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
+            .then(resp => {
+              if (resp.code === RespCode.OK) {
+                sendCommand('loadIssues', resp.data, isMerge);
+              } else {
+                notificationControl.showError('Load Issue Error: ' + resp.message);
+                setLoading(false);
+              }
+            })
+            .catch(err => {
+              notificationControl.showError('Load Issue Error: ' + err);
               setLoading(false);
+            });
+        };
+        (window as any).loadIssues = loadIssues;
+
+        loadIssues();
+
+        (window as any).loadIssueDone = () => {
+          setLoading(false);
+        };
+      };
+      (window as any).checkIssuesChange = (isChange: boolean) => {
+        if (isChange) {
+          dialogControl.confirm(translate('confirm_overload'), (agree: boolean) => {
+            if (agree) {
+              startToLoad();
             }
-          })
-          .catch(err => {
-            notificationControl.showError('Load Issue Error: ' + err);
-            setLoading(false);
+
+            return Promise.resolve(true);
           });
+        } else {
+          startToLoad();
+        }
       };
-      (window as any).loadIssues = loadIssues;
-
-      loadIssues();
-
-      (window as any).loadIssueDone = () => {
-        setLoading(false);
-      };
+      sendCommand('checkIssuesChange', isMerge);
     },
     [selectedQuery]
   );
@@ -122,6 +139,7 @@ export default function HomeComponent() {
         notificationControl.showInfo('Nothing is changed');
       }
     };
+    
   }, [selectedQuery]);
 
   return (

@@ -100,7 +100,7 @@ export default function HomeComponent() {
           setLoading(false);
         };
       };
-      (window as any).checkIssuesChange = (isChange: boolean) => {
+      (window as any).beforeLoadIssue = (isChange: boolean) => {
         if (isChange) {
           dialogControl.confirm(translate('confirm_overload'), (agree: boolean) => {
             if (agree) {
@@ -113,7 +113,23 @@ export default function HomeComponent() {
           startToLoad();
         }
       };
-      sendCommand('checkIssuesChange', isMerge);
+      sendCommand('beforeLoadIssue', isMerge);
+
+      (window as any).afterLoadIssue = (issue_ids: number[]) => {
+        httpRequest('api/after_load_issue', 'post', { issue_ids })
+          .then(resp => {
+            if (resp.code === RespCode.OK) {
+              sendCommand('afterLoadIssue', resp.data);
+            } else {
+              notificationControl.showError('After Load Issue Error: ' + resp.message);
+              setLoading(false);
+            }
+          })
+          .catch(err => {
+            notificationControl.showError('After Load Issue Error: ' + err);
+            setLoading(false);
+          });
+      };
     },
     [selectedQuery]
   );
@@ -139,7 +155,6 @@ export default function HomeComponent() {
         notificationControl.showInfo('Nothing is changed');
       }
     };
-    
   }, [selectedQuery]);
 
   return (

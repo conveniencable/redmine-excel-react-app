@@ -25,16 +25,16 @@ const QUERY_CACHE_KEY = '_query';
   }
 };
 
-let cacheQuery: { projectId: number; query: QueryData } = JSON.parse(localStorage.getItem(QUERY_CACHE_KEY));
+let cacheQuery: { projectId: number; query: QueryData; sort: string[][] } = JSON.parse(localStorage.getItem(QUERY_CACHE_KEY));
 
 export default function HomeComponent() {
   const currentUser = useCurrentUser();
 
   const location = useLocation();
   const history = useHistory();
-  const [selectedQuery, setSelectedQuery] = useState<{ projectId: number; query: QueryData }>();
+  const [selectedQuery, setSelectedQuery] = useState<{ projectId: number; query: QueryData; sort: string[][] }>();
   useEffect(() => {
-    const queryObj = cacheQuery || { projectId: 0, query: currentUser.default_query };
+    const queryObj = cacheQuery || { projectId: 0, query: currentUser.default_query, sort: [] };
     setSelectedQuery(queryObj);
 
     const queryStr = JSON.stringify(queryObj);
@@ -53,13 +53,16 @@ export default function HomeComponent() {
   };
 
   const onLoad = useCallback(
-    (columns: { name: string; label: string }[], isMerge: boolean) => {
+    (columns: { name: string; label: string }[], sort: string[][], isMerge: boolean) => {
       const startToLoad = () => {
+        const formatSort = {};
+        sort.forEach((s, i) => (formatSort[i] = s));
         const params: QueryParams = {
           f: [],
           op: {},
           v: {},
           c: selectedQuery.query.columns,
+          sort: formatSort,
           set_filter: 1
         };
 

@@ -1,18 +1,20 @@
 import _ = require('lodash');
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { Button, Dropdown, Input, Segment } from 'semantic-ui-react';
+import { Button, Dropdown, Input, Modal, Segment, Select, Table } from 'semantic-ui-react';
 import { httpRequest } from '../../http-client';
 import { QueryData, QueryFilter, QuerySetting } from '../../models/query.model';
 import { SortableContainer, SortableElement } from 'react-sortable-hoc';
 import * as arrayMove from 'array-move';
 import T, { translate } from './T';
 import QuerySelector from './QuerySelector';
+import { values } from 'lodash';
+import { settings } from 'cluster';
 
 export function Query(props: {
-  value: { projectId: number; query: QueryData };
-  onChange: (value: { projectId: number; query: QueryData }) => void;
-  onLoad: (columns: { name: string; label: string }[], isMerge: boolean) => void;
+  value: { projectId: number; query: QueryData; sort: string[][] };
+  onChange: (value: { projectId: number; query: QueryData; sort: string[][] }) => void;
+  onLoad: (columns: { name: string; label: string }[], sort: string[][], isMerge: boolean) => void;
   onSave: () => void;
   loadingChange: (loading: boolean) => void;
 }) {
@@ -24,10 +26,11 @@ export function Query(props: {
     availableColumns: []
   });
 
-  const { projectId, query } = props.value;
+  const { projectId, query, sort } = props.value;
 
   const [filteredFilterOptions, setFilteredFilterOptions] = useState({});
   const [filteredColumns, setFilteredColumns] = useState([]);
+  const [openSort, setOpenSort] = useState(false);
 
   useEffect(() => {
     httpRequest<void, QuerySetting>('api/query_settings', 'get')
@@ -104,7 +107,7 @@ export function Query(props: {
               setQuerySetting({ ...querySetting, availableFilters: newFilters });
             }
 
-            props.onChange({ projectId: newProjectId, query: newQuery || { ...query, id: null } });
+            props.onChange({ projectId: newProjectId, sort, query: newQuery || { ...query, id: null } });
           }}
         />
       </Segment>
@@ -157,7 +160,7 @@ export function Query(props: {
                             return;
                           }
 
-                          props.onChange({ projectId, query: onSelectFilter({ fieldName, operator: operators[0], values: [] }, query) });
+                          props.onChange({ projectId, sort, query: onSelectFilter({ fieldName, operator: operators[0], values: [] }, query) });
                         }}
                         key={option[1]}
                         value={option[1]}
@@ -171,6 +174,8 @@ export function Query(props: {
             </Dropdown.Menu>
           </Dropdown.Menu>
         </Dropdown>
+
+        <Button icon="sort" floated="right" primary size="mini" content={translate('label_sort')} onClick={() => setOpenSort(true)} />
         <table className="ui mini compact striped celled table">
           <tbody>
             {query.filters
@@ -199,6 +204,7 @@ export function Query(props: {
                         onChange={(_, data) => {
                           props.onChange({
                             projectId,
+                            sort,
                             query: onSelectFilter({ fieldName: s.fieldName, operator: data.value as string, values: [] }, query)
                           });
                         }}
@@ -211,7 +217,7 @@ export function Query(props: {
                         optionValues={filterOptions.values || []}
                         values={s.values}
                         onChange={values => {
-                          props.onChange({ projectId, query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query) });
+                          props.onChange({ projectId, sort, query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query) });
                         }}
                       ></FilterValues>
                     </td>
@@ -233,7 +239,7 @@ export function Query(props: {
                             }
                           }
 
-                          props.onChange({ projectId, query: { ...query, filters: query.filters.filter(f => f.fieldName !== s.fieldName) } });
+                          props.onChange({ projectId, sort, query: { ...query, filters: query.filters.filter(f => f.fieldName !== s.fieldName) } });
                         }}
                       >
                         <i className="ui red delete icon"></i>
@@ -269,7 +275,7 @@ export function Query(props: {
                 <Dropdown.Item
                   onClick={(e, data) => {
                     e.stopPropagation();
-                    props.onChange({ projectId, query: { ...query, columns: [...query.columns, data.value as string] } });
+                    props.onChange({ projectId, sort, query: { ...query, columns: [...query.columns, data.value as string] } });
                   }}
                   key={option[1]}
                   value={option[1]}
@@ -286,9 +292,9 @@ export function Query(props: {
             items={selectedColumnItems}
             axis="xy"
             distance={1}
-            onDelete={name => props.onChange({ projectId, query: { ...query, columns: query.columns.filter(c => c !== name) } })}
+            onDelete={name => props.onChange({ projectId, sort, query: { ...query, columns: query.columns.filter(c => c !== name) } })}
             onSortEnd={({ oldIndex, newIndex }) => {
-              props.onChange({ projectId, query: { ...query, columns: arrayMove(selectedColumnItems, oldIndex, newIndex).map(v => v.name) } });
+              props.onChange({ projectId, sort, query: { ...query, columns: arrayMove(selectedColumnItems, oldIndex, newIndex).map(v => v.name) } });
             }}
           />
         </div>
@@ -297,7 +303,7 @@ export function Query(props: {
         <Button
           color="blue"
           onClick={() => {
-            props.onLoad(selectedColumnItems, false);
+            props.onLoad(selectedColumnItems, sort, false);
           }}
         >
           <T>button_load</T>
@@ -306,7 +312,7 @@ export function Query(props: {
         <Button
           color="blue"
           onClick={() => {
-            props.onLoad(selectedColumnItems, true);
+            props.onLoad(selectedColumnItems, sort, true);
           }}
         >
           <T>button_load_and_merge</T>
@@ -316,6 +322,14 @@ export function Query(props: {
           <T>button_save</T>
         </Button>
       </Segment>
+
+      <EditSortModal
+        availableColumns={[['#', 'id'], ...querySetting.availableColumns]}
+        value={sort}
+        onChange={sort => props.onChange({ projectId, query, sort })}
+        open={openSort}
+        onClose={() => setOpenSort(false)}
+      />
     </Segment.Group>
   );
 }
@@ -353,7 +367,7 @@ function FilterValues(props: { type: string; operator: string; optionValues: str
           search
           selection
           value={props.values}
-          options={props.optionValues.map(o => ({ value: o[1], text: o[0], key: o[0] }))}
+          options={props.optionValues.map(o => ({ value: o[1], text: o[0], key: o[1] }))}
           onChange={(_, data) => props.onChange(data.value as string[])}
           className="mini"
         ></Dropdown>
@@ -391,7 +405,7 @@ function FilterValues(props: { type: string; operator: string; optionValues: str
             search
             selection
             value={props.values}
-            options={props.optionValues.map(o => ({ value: o[1], text: o[0], key: o[0] }))}
+            options={props.optionValues.map(o => ({ value: o[1], text: o[0], key: o[1] }))}
             onChange={(_, data) => props.onChange(data.value as string[])}
           ></Dropdown>
         );
@@ -430,4 +444,80 @@ function onSelectFilter(selectFilter: QueryFilter, value: QueryData): QueryData 
   }
 
   return { ...value, filters: newFilters };
+}
+
+function EditSortModal(props: {
+  value: string[][];
+  availableColumns: string[][];
+  onChange: (value: string[][]) => void;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { value, availableColumns, onChange, open, onClose } = props;
+
+  const selectedColumns = _.uniq(value.map(v => v[0]));
+
+  return (
+    <Modal open={open} onClose={onClose} closeIcon>
+      <Modal.Header>
+        <T>label_sort</T>
+        <Button
+          size="mini"
+          icon="plus"
+          primary
+          onClick={() => {
+            onChange([...value, ['', 'asc']]);
+          }}
+          style={{ marginLeft: '1rem' }}
+        ></Button>
+      </Modal.Header>
+      <Modal.Content>
+        <table style={{ width: '100%' }}>
+          <tbody>
+            {value.map((v, i) => (
+              <tr key={i}>
+                <td>
+                  <Dropdown
+                    size="mini"
+                    compact
+                    search
+                    selection
+                    value={v[0]}
+                    options={availableColumns.map(o => ({ value: o[1], text: o[0], key: o[1], disabled: selectedColumns.includes(o[1]) }))}
+                    onChange={(_, data) => {
+                      onChange(value.map((vv, ii) => (i === ii ? [data.value as string, v[1]] : vv)));
+                    }}
+                  ></Dropdown>
+                </td>
+                <td>
+                  <Select
+                    compact
+                    value={v[1]}
+                    className="mini compacted"
+                    options={[
+                      { key: 'asc', value: 'asc', text: translate('label_ascending') },
+                      { key: 'desc', value: 'desc', text: translate('label_descending') }
+                    ]}
+                    onChange={(_, data) => {
+                      onChange(value.map((vv, ii) => (i === ii ? [vv[0], data.value as string] : vv)));
+                    }}
+                  ></Select>
+                </td>
+                <td>
+                  <Button
+                    size="mini"
+                    icon="minus"
+                    color="red"
+                    onClick={() => {
+                      onChange(value.filter((vv, ii) => ii !== i));
+                    }}
+                  ></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Modal.Content>
+    </Modal>
+  );
 }

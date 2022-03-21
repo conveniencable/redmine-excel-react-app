@@ -30,6 +30,7 @@ export interface QueryParams {
 
   offset?: number;
   limit?: number;
+  sort: { [index: number]: string[] };
 }
 
 export interface Issues {

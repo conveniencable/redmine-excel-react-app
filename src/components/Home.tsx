@@ -160,6 +160,18 @@ export default function HomeComponent() {
     };
   }, [selectedQuery]);
 
+  (window as any).deleteIssue = (id: number) => {
+    setLoading(true);
+    httpRequest('api/issues', 'delete', { id }).then(resp => {
+      if (resp.code == RespCode.OK) {
+        sendCommand('deleteIssue', resp.data);
+      } else {
+        sendCommand('deleteIssue', 'Delete Issue Error: ' + resp.message);
+      }
+      setLoading(false);
+    });
+  };
+
   return (
     <div>
       <Dimmer active={loading} inverted>

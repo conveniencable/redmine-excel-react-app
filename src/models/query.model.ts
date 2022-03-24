@@ -39,3 +39,5 @@ export interface Issues {
   total_count: number;
   issues: any[];
 }
+
+export const NO_VALUE_OPERATORS = ['!*', '*', 'nd', 't', 'ld', 'nw', 'w', 'lw', 'l2w', 'nm', 'm', 'lm', 'y', 'o', 'c', '*o', '!o'];

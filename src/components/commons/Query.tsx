@@ -1,9 +1,9 @@
 import _ = require('lodash');
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { Button, Dropdown, Input, Modal, Segment, Select, Table } from 'semantic-ui-react';
+import { Button, Dropdown, Input, Label, Modal, Segment, Select, Table } from 'semantic-ui-react';
 import { httpRequest } from '../../http-client';
-import { QueryData, QueryFilter, QuerySetting } from '../../models/query.model';
+import { NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting } from '../../models/query.model';
 import { SortableContainer, SortableElement } from 'react-sortable-hoc';
 import * as arrayMove from 'array-move';
 import T, { translate } from './T';
@@ -191,9 +191,16 @@ export function Query(props: {
                   return null;
                 }
 
+                const has_value = !NO_VALUE_OPERATORS.includes(s.operator);
+
                 return (
                   <tr key={s.fieldName}>
-                    <td>{filterOptions.name}</td>
+                    <td>
+                      {filterOptions.name}
+                      {has_value && isEmptyOperatorValue(s) && (
+                        <Label color="red" basic pointing="left" content={translate('error_complete_value')}></Label>
+                      )}
+                    </td>
                     <td>
                       <Dropdown
                         search
@@ -211,15 +218,21 @@ export function Query(props: {
                       ></Dropdown>
                     </td>
                     <td>
-                      <FilterValues
-                        type={filterOptions.type}
-                        operator={s.operator}
-                        optionValues={filterOptions.values || []}
-                        values={s.values}
-                        onChange={values => {
-                          props.onChange({ projectId, sort, query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query) });
-                        }}
-                      ></FilterValues>
+                      {has_value && (
+                        <FilterValues
+                          type={filterOptions.type}
+                          operator={s.operator}
+                          optionValues={filterOptions.values || []}
+                          values={s.values}
+                          onChange={values => {
+                            props.onChange({
+                              projectId,
+                              sort,
+                              query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query)
+                            });
+                          }}
+                        ></FilterValues>
+                      )}
                     </td>
                     <td style={{ width: '1px' }}>
                       <a
@@ -352,10 +365,6 @@ const SortableSelectedColumnList = SortableContainer((props: { items: { name: st
 });
 
 function FilterValues(props: { type: string; operator: string; optionValues: string[][]; values: string[]; onChange: (values: string[]) => void }) {
-  if (['!*', '*', 'nd', 't', 'ld', 'nw', 'w', 'lw', 'l2w', 'nm', 'm', 'lm', 'y', 'o', 'c', '*o', '!o'].includes(props.operator)) {
-    return <></>;
-  }
-
   switch (props.type) {
     case 'list':
     case 'list_optional':
@@ -520,4 +529,14 @@ function EditSortModal(props: {
       </Modal.Content>
     </Modal>
   );
+}
+function isEmptyOperatorValue(s: QueryFilter) {
+  if (!s.values) {
+    return true;
+  }
+  if (s.operator == '><') {
+    return !s.values[0] || !s.values[1];
+  }
+
+  return s.values.filter(v => !!v).length === 0;
 }

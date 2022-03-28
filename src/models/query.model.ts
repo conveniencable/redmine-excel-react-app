@@ -10,6 +10,7 @@ export interface QueryFilter {
   fieldName: string;
   operator: string;
   values?: string[];
+  invalid?: boolean;
 }
 
 export interface QueryData {

@@ -95,7 +95,7 @@
     "lodash": "^4.17.15",
     "moment": "^2.25.3",
     "pluralize": "^8.0.0",
-    "qs": "^6.10.2",
+    "qs": "^6.10.3",
     "react-async": "^10.0.1",
     "react-beautiful-dnd": "^13.0.0",
     "react-dropzone": "^11.0.1",

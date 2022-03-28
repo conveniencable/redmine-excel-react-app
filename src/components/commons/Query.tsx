@@ -89,6 +89,8 @@ export function Query(props: {
     }
   });
 
+  const hasInvalidFilter = !!query.filters.find(filter => !NO_VALUE_OPERATORS.includes(filter.operator) && filter.invalid);
+
   return (
     <Segment.Group>
       <Segment attached="top">
@@ -197,9 +199,7 @@ export function Query(props: {
                   <tr key={s.fieldName}>
                     <td>
                       {filterOptions.name}
-                      {has_value && isEmptyOperatorValue(s) && (
-                        <Label color="red" basic pointing="left" content={translate('error_complete_value')}></Label>
-                      )}
+                      {has_value && s.invalid && <Label color="red" basic pointing="left" content={translate('error_complete_value')}></Label>}
                     </td>
                     <td>
                       <Dropdown
@@ -315,6 +315,7 @@ export function Query(props: {
       <Segment>
         <Button
           color="blue"
+          disabled={hasInvalidFilter}
           onClick={() => {
             props.onLoad(selectedColumnItems, sort, false);
           }}
@@ -324,6 +325,7 @@ export function Query(props: {
 
         <Button
           color="blue"
+          disabled={hasInvalidFilter}
           onClick={() => {
             props.onLoad(selectedColumnItems, sort, true);
           }}
@@ -529,14 +531,4 @@ function EditSortModal(props: {
       </Modal.Content>
     </Modal>
   );
-}
-function isEmptyOperatorValue(s: QueryFilter) {
-  if (!s.values) {
-    return true;
-  }
-  if (s.operator == '><') {
-    return !s.values[0] || !s.values[1];
-  }
-
-  return s.values.filter(v => !!v).length === 0;
 }

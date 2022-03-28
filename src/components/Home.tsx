@@ -8,7 +8,7 @@ import { useCurrentUser } from '../hooks/auth-hook';
 import { useCallback, useEffect, useState } from 'react';
 import { httpRequest } from '../http-client';
 import { Dimmer, Loader } from 'semantic-ui-react';
-import { sendCommand } from '../helpers/my_helper';
+import { isEmptyOperatorValue, sendCommand } from '../helpers/my_helper';
 import { dialogControl } from '../controls/dialog-control';
 import ExcelList from './commons/ExcelList';
 import { RespCode } from '../models/system.model';
@@ -181,6 +181,9 @@ export default function HomeComponent() {
         <Query
           value={selectedQuery}
           onChange={query => {
+            query.query.filters.forEach(filter => {
+              filter.invalid = isEmptyOperatorValue(filter);
+            });
             setSelectedQuery(query);
             const queryStr = JSON.stringify(query);
             sendCommand('updateQuery', queryStr, '');

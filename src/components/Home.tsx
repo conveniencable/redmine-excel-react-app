@@ -172,6 +172,10 @@ export default function HomeComponent() {
     });
   };
 
+  (window as any).changeColumnSetting = (columnNames: string[]) => {
+    setSelectedQuery(s => ({ ...s, query: { ...s.query, columns: columnNames } }));
+  };
+
   return (
     <div>
       <Dimmer active={loading} inverted>

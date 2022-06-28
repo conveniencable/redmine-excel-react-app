@@ -1,19 +1,20 @@
 import _ = require('lodash');
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { Button, Dropdown, Input, Label, Modal, Segment, Select, Table } from 'semantic-ui-react';
+import { Button, Divider, Dropdown, Form, Input, Label, Modal, Segment, Select, Table } from 'semantic-ui-react';
 import { httpRequest } from '../../http-client';
-import { NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting } from '../../models/query.model';
+import { ColumnPosition, NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting, QueryValue } from '../../models/query.model';
 import { SortableContainer, SortableElement } from 'react-sortable-hoc';
 import * as arrayMove from 'array-move';
 import T, { translate } from './T';
 import QuerySelector from './QuerySelector';
 import { values } from 'lodash';
 import { settings } from 'cluster';
+import { getColumnName, getColumnNameNumber } from '../../helpers/my_helper';
 
 export function Query(props: {
-  value: { projectId: number; query: QueryData; sort: string[][] };
-  onChange: (value: { projectId: number; query: QueryData; sort: string[][] }) => void;
+  value: QueryValue;
+  onChange: (value: QueryValue) => void;
   onLoad: (columns: { name: string; label: string }[], sort: string[][], isMerge: boolean) => void;
   onSave: () => void;
   loadingChange: (loading: boolean) => void;
@@ -26,11 +27,12 @@ export function Query(props: {
     availableColumns: []
   });
 
-  const { projectId, query, sort } = props.value;
+  const { projectId, query, sort, columnPosition } = props.value;
 
   const [filteredFilterOptions, setFilteredFilterOptions] = useState({});
   const [filteredColumns, setFilteredColumns] = useState([]);
   const [openSort, setOpenSort] = useState(false);
+  const [openColumnPosition, setOpenColumnPosition] = useState(false);
 
   useEffect(() => {
     httpRequest<void, QuerySetting>('api/query_settings', 'get')
@@ -109,7 +111,7 @@ export function Query(props: {
               setQuerySetting({ ...querySetting, availableFilters: newFilters });
             }
 
-            props.onChange({ projectId: newProjectId, sort, query: newQuery || { ...query, id: null } });
+            props.onChange({ projectId: newProjectId, sort, columnPosition, query: newQuery || { ...query, id: null } });
           }}
         />
       </Segment>
@@ -162,7 +164,12 @@ export function Query(props: {
                             return;
                           }
 
-                          props.onChange({ projectId, sort, query: onSelectFilter({ fieldName, operator: operators[0], values: [] }, query) });
+                          props.onChange({
+                            projectId,
+                            sort,
+                            columnPosition,
+                            query: onSelectFilter({ fieldName, operator: operators[0], values: [] }, query)
+                          });
                         }}
                         key={option[1]}
                         value={option[1]}
@@ -177,7 +184,16 @@ export function Query(props: {
           </Dropdown.Menu>
         </Dropdown>
 
-        <Button icon="sort" floated="right" primary size="mini" content={translate('label_sort')} onClick={() => setOpenSort(true)} />
+        <Dropdown direction="left" icon="setting" button className="icon mini primary right floated">
+          <Dropdown.Menu>
+            {[
+              { text: translate('label_sort'), value: 'sort', key: 'sort', icon: 'ordered list', onClick: () => setOpenSort(true) },
+              { text: translate('label_column_position'), value: 'map', key: 'map', icon: 'ordered list', onClick: () => setOpenColumnPosition(true) }
+            ].map(option => (
+              <Dropdown.Item key={option.value} {...option} />
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
         <table className="ui mini compact striped celled table">
           <tbody>
             {query.filters
@@ -212,6 +228,7 @@ export function Query(props: {
                           props.onChange({
                             projectId,
                             sort,
+                            columnPosition,
                             query: onSelectFilter({ fieldName: s.fieldName, operator: data.value as string, values: [] }, query)
                           });
                         }}
@@ -228,6 +245,7 @@ export function Query(props: {
                             props.onChange({
                               projectId,
                               sort,
+                              columnPosition,
                               query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query)
                             });
                           }}
@@ -252,7 +270,12 @@ export function Query(props: {
                             }
                           }
 
-                          props.onChange({ projectId, sort, query: { ...query, filters: query.filters.filter(f => f.fieldName !== s.fieldName) } });
+                          props.onChange({
+                            projectId,
+                            sort,
+                            columnPosition,
+                            query: { ...query, filters: query.filters.filter(f => f.fieldName !== s.fieldName) }
+                          });
                         }}
                       >
                         <i className="ui red delete icon"></i>
@@ -288,7 +311,7 @@ export function Query(props: {
                 <Dropdown.Item
                   onClick={(e, data) => {
                     e.stopPropagation();
-                    props.onChange({ projectId, sort, query: { ...query, columns: [...query.columns, data.value as string] } });
+                    props.onChange({ projectId, sort, columnPosition, query: { ...query, columns: [...query.columns, data.value as string] } });
                   }}
                   key={option[1]}
                   value={option[1]}
@@ -305,9 +328,16 @@ export function Query(props: {
             items={selectedColumnItems}
             axis="xy"
             distance={1}
-            onDelete={name => props.onChange({ projectId, sort, query: { ...query, columns: query.columns.filter(c => c !== name) } })}
+            onDelete={name =>
+              props.onChange({ projectId, sort, columnPosition, query: { ...query, columns: query.columns.filter(c => c !== name) } })
+            }
             onSortEnd={({ oldIndex, newIndex }) => {
-              props.onChange({ projectId, sort, query: { ...query, columns: arrayMove(selectedColumnItems, oldIndex, newIndex).map(v => v.name) } });
+              props.onChange({
+                projectId,
+                sort,
+                columnPosition,
+                query: { ...query, columns: arrayMove(selectedColumnItems, oldIndex, newIndex).map(v => v.name) }
+              });
             }}
           />
         </div>
@@ -341,9 +371,17 @@ export function Query(props: {
       <EditSortModal
         availableColumns={[['#', 'id'], ...querySetting.availableColumns]}
         value={sort}
-        onChange={sort => props.onChange({ projectId, query, sort })}
+        onChange={sort => props.onChange({ projectId, query, sort, columnPosition })}
         open={openSort}
         onClose={() => setOpenSort(false)}
+      />
+
+      <EditColumnPosition
+        columns={[{ label: '#', name: 'id' }, ...selectedColumnItems]}
+        value={columnPosition}
+        onChange={columnPosition => props.onChange({ projectId, query, sort, columnPosition })}
+        open={openColumnPosition}
+        onClose={() => setOpenColumnPosition(false)}
       />
     </Segment.Group>
   );
@@ -528,6 +566,95 @@ function EditSortModal(props: {
             ))}
           </tbody>
         </table>
+      </Modal.Content>
+    </Modal>
+  );
+}
+
+function EditColumnPosition(props: {
+  value?: ColumnPosition;
+  columns: { name: string; label: string }[];
+  onChange: (value: ColumnPosition) => void;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { columns, onChange, open, onClose } = props;
+
+  let value = props.value;
+  if (!value) {
+    value = { rowNumber: 1, columnNumbers: [] };
+  }
+
+  let columnNames: string[] = [];
+
+  const labelNames: { [name: string]: string } = {};
+  const rowNumberValues: { [name: string]: number } = {};
+  let lastColumnNumber = 0;
+  for (const c of columns) {
+    if (!labelNames[c.name]) {
+      labelNames[c.name] = c.label;
+      columnNames.push(c.name);
+
+      const columnNumberConfig = value.columnNumbers.find(cn => cn.name === c.name);
+      if (columnNumberConfig) {
+        const currentNumber = columnNumberConfig.columnNumber;
+        rowNumberValues[c.name] = currentNumber;
+        lastColumnNumber = currentNumber + 1;
+      } else {
+        const currentNumber = lastColumnNumber + 1;
+        rowNumberValues[c.name] = currentNumber;
+        lastColumnNumber = currentNumber;
+      }
+    }
+  }
+
+  columnNames = columnNames.sort((a, b) => {
+    const an = rowNumberValues[a];
+    const bn = rowNumberValues[b];
+    if (an == bn) {
+      return 0;
+    }
+    return an > bn ? 1 : -1;
+  });
+
+  return (
+    <Modal open={open} onClose={onClose} closeIcon>
+      <Modal.Header>
+        <T>label_column_position</T>
+      </Modal.Header>
+      <Modal.Content>
+        <Form>
+          <Form.Input
+            value={value.rowNumber}
+            onChange={(e, d) => onChange({ rowNumber: parseInt(d.value), columnNumbers: value.columnNumbers })}
+            label={translate('label_row_number')}
+            inline
+            type="number"
+            min="1"
+            step="1"
+            pattern="\d+"
+          />
+          <Divider />
+          {columnNames.map(columnName => (
+            <Form.Input
+              value={getColumnName(rowNumberValues[columnName])}
+              onChange={(e, d) => {
+                const tempColumnNumbers = columnNames.map(columnName => ({ name: columnName, columnNumber: rowNumberValues[columnName] }));
+                onChange({
+                  rowNumber: value.rowNumber,
+                  columnNumbers: tempColumnNumbers.map(cn =>
+                    cn.name === columnName ? { name: cn.name, columnNumber: getColumnNameNumber(d.value) } : cn
+                  )
+                });
+              }}
+              key={columnName}
+              label={labelNames[columnName]}
+              inline
+              type="text"
+              pattern="[A-Z]+"
+            />
+          ))}
+        </Form>
       </Modal.Content>
     </Modal>
   );

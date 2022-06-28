@@ -3,7 +3,7 @@ import '../assets/scss/Home.scss';
 import { useLocation, useHistory } from 'react-router-dom';
 import { routerControl } from '../controls/route-control';
 import { Query } from './commons/Query';
-import { Issues, QueryData, QueryParams } from '../models/query.model';
+import { ColumnPosition, Issues, QueryData, QueryParams, QueryValue } from '../models/query.model';
 import { useCurrentUser } from '../hooks/auth-hook';
 import { useCallback, useEffect, useState } from 'react';
 import { httpRequest } from '../http-client';
@@ -32,7 +32,7 @@ export default function HomeComponent() {
 
   const location = useLocation();
   const history = useHistory();
-  const [selectedQuery, setSelectedQuery] = useState<{ projectId: number; query: QueryData; sort: string[][] }>();
+  const [selectedQuery, setSelectedQuery] = useState<QueryValue>();
   useEffect(() => {
     const queryObj = cacheQuery || { projectId: 0, query: currentUser.default_query, sort: [] };
     setSelectedQuery(queryObj);
@@ -84,7 +84,7 @@ export default function HomeComponent() {
           return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
             .then(resp => {
               if (resp.code === RespCode.OK) {
-                sendCommand('loadIssues', resp.data, isMerge);
+                sendCommand('loadIssues', updateColumnPosition(resp.data, selectedQuery.columnPosition), isMerge);
               } else {
                 notificationControl.showError('Load Issue Error: ' + resp.message);
                 setLoading(false);
@@ -201,4 +201,27 @@ export default function HomeComponent() {
       <ExcelList></ExcelList>
     </div>
   );
+}
+
+function updateColumnPosition(data: Issues, columnPosition?: ColumnPosition): Issues {
+  if (!columnPosition || !data.columnSettings) {
+    return data;
+  }
+
+  data.startRowIndex = columnPosition.rowNumber || 1;
+  let lastColumnIndex = 0;
+  for (const cs of data.columnSettings) {
+    const cp = columnPosition.columnNumbers?.find(cn => cn.name === cs.name);
+    if (cp) {
+      cs.columnIndex = cp.columnNumber;
+      lastColumnIndex += cp.columnNumber + 1;
+    } else {
+      const currentColumnIndex = lastColumnIndex + 1;
+      cs.columnIndex = currentColumnIndex;
+      cs.columnIndex = currentColumnIndex;
+      lastColumnIndex = currentColumnIndex + 1;
+    }
+  }
+
+  return data;
 }

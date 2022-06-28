@@ -39,6 +39,24 @@ export interface Issues {
   limit: number;
   total_count: number;
   issues: any[];
+  startRowIndex: number;
+  columnSettings: {
+    name: string;
+    columnIndex: number;
+    startRowIndex: number;
+  }[];
 }
 
 export const NO_VALUE_OPERATORS = ['!*', '*', 'nd', 't', 'ld', 'nw', 'w', 'lw', 'l2w', 'nm', 'm', 'lm', 'y', 'o', 'c', '*o', '!o'];
+
+export interface ColumnPosition {
+  rowNumber: number;
+  columnNumbers: { name: string; columnNumber: number }[];
+}
+
+export interface QueryValue {
+  projectId: number;
+  query: QueryData;
+  sort: string[][];
+  columnPosition?: ColumnPosition;
+}

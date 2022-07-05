@@ -3,14 +3,16 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { Button, Divider, Dropdown, Form, Input, Label, Modal, Segment, Select, Table } from 'semantic-ui-react';
 import { httpRequest } from '../../http-client';
-import { ColumnPosition, NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting, QueryValue } from '../../models/query.model';
-import { SortableContainer, SortableElement } from 'react-sortable-hoc';
+import { NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting, QueryValue } from '../../models/query.model';
 import * as arrayMove from 'array-move';
 import T, { translate } from './T';
 import QuerySelector from './QuerySelector';
 import { values } from 'lodash';
 import { settings } from 'cluster';
-import { getColumnName, getColumnNameNumber } from '../../helpers/my_helper';
+import { correctQueryValue, getColumnName, getColumnNameNumber } from '../../helpers/my_helper';
+import { value } from 'popmotion';
+import { useCallback } from 'hoist-non-react-statics/node_modules/@types/react';
+import { notificationControl } from '../../controls/notification-control';
 
 export function Query(props: {
   value: QueryValue;
@@ -27,7 +29,7 @@ export function Query(props: {
     availableColumns: []
   });
 
-  const { projectId, query, sort, columnPosition } = props.value;
+  const { projectId, query, sort } = props.value;
 
   const [filteredFilterOptions, setFilteredFilterOptions] = useState({});
   const [filteredColumns, setFilteredColumns] = useState([]);
@@ -83,11 +85,11 @@ export function Query(props: {
     });
   }, [selectedFieldNames, querySetting, projectId]);
 
-  const selectedColumnItems: { name: string; label: string }[] = [];
-  query.columns.forEach(c => {
+  const selectedColumnItems: { name: string; label: string; position: number }[] = [];
+  query.columns.forEach((c, i) => {
     const option = querySetting.availableColumns.find(o => o[1] === c);
     if (option) {
-      selectedColumnItems.push({ name: c, label: option[0] });
+      selectedColumnItems.push({ name: c, label: option[0], position: query.columnPositions[i] });
     }
   });
 
@@ -111,7 +113,7 @@ export function Query(props: {
               setQuerySetting({ ...querySetting, availableFilters: newFilters });
             }
 
-            props.onChange({ projectId: newProjectId, sort, columnPosition, query: newQuery || { ...query, id: null } });
+            props.onChange(correctQueryValue({ projectId: newProjectId, sort, query: newQuery || { ...query, id: null } }));
           }}
         />
       </Segment>
@@ -167,7 +169,6 @@ export function Query(props: {
                           props.onChange({
                             projectId,
                             sort,
-                            columnPosition,
                             query: onSelectFilter({ fieldName, operator: operators[0], values: [] }, query)
                           });
                         }}
@@ -228,7 +229,6 @@ export function Query(props: {
                           props.onChange({
                             projectId,
                             sort,
-                            columnPosition,
                             query: onSelectFilter({ fieldName: s.fieldName, operator: data.value as string, values: [] }, query)
                           });
                         }}
@@ -245,7 +245,6 @@ export function Query(props: {
                             props.onChange({
                               projectId,
                               sort,
-                              columnPosition,
                               query: onSelectFilter({ fieldName: s.fieldName, operator: s.operator, values }, query)
                             });
                           }}
@@ -273,7 +272,6 @@ export function Query(props: {
                           props.onChange({
                             projectId,
                             sort,
-                            columnPosition,
                             query: { ...query, filters: query.filters.filter(f => f.fieldName !== s.fieldName) }
                           });
                         }}
@@ -288,57 +286,48 @@ export function Query(props: {
         </table>
       </Segment>
       <Segment>
-        <Dropdown text={translate('field_column_names')} icon="plus" floating labeled button className="icon blue mini">
-          <Dropdown.Menu>
-            <Input
-              icon="search"
-              iconPosition="left"
-              className="search"
-              focus
-              onChange={(_, data) => {
-                const searchText = (data.value || '').toUpperCase();
-                if (searchText) {
-                  setFilteredColumns(querySetting.availableColumns.filter(o => o[0].toUpperCase().includes(searchText)));
-                } else {
-                  setFilteredColumns(querySetting.availableColumns);
-                }
-              }}
-              onClick={e => e.stopPropagation()}
-            />
-            <Dropdown.Divider />
-            <Dropdown.Menu scrolling>
-              {filteredColumns.map(option => (
-                <Dropdown.Item
-                  onClick={(e, data) => {
-                    e.stopPropagation();
-                    props.onChange({ projectId, sort, columnPosition, query: { ...query, columns: [...query.columns, data.value as string] } });
-                  }}
-                  key={option[1]}
-                  value={option[1]}
-                  text={option[0]}
-                  disabled={query.columns.includes(option[1])}
-                  icon="add"
-                />
-              ))}
+        <div style={{ display: 'flex' }}>
+          <Dropdown text={translate('field_column_names')} icon="plus" floating labeled button className="icon blue mini">
+            <Dropdown.Menu>
+              <Input
+                icon="search"
+                iconPosition="left"
+                className="search"
+                focus
+                onChange={(_, data) => {
+                  const searchText = (data.value || '').toUpperCase();
+                  if (searchText) {
+                    setFilteredColumns(querySetting.availableColumns.filter(o => o[0].toUpperCase().includes(searchText)));
+                  } else {
+                    setFilteredColumns(querySetting.availableColumns);
+                  }
+                }}
+                onClick={e => e.stopPropagation()}
+              />
+              <Dropdown.Divider />
+              <Dropdown.Menu scrolling>
+                {filteredColumns.map(option => (
+                  <Dropdown.Item
+                    onClick={(e, data) => {
+                      e.stopPropagation();
+                      props.onChange({ projectId, sort, query: { ...query, columns: [...query.columns, data.value as string] } });
+                    }}
+                    key={option[1]}
+                    value={option[1]}
+                    text={option[0]}
+                    disabled={query.columns.includes(option[1])}
+                    icon="add"
+                  />
+                ))}
+              </Dropdown.Menu>
             </Dropdown.Menu>
-          </Dropdown.Menu>
-        </Dropdown>
+          </Dropdown>
+          <Input value={query.startRow} type="number" min="1" pattern="\d+" size="mini" label={translate('label_start_row')} style={{ flex: 1 }} />
+        </div>
         <div>
-          <SortableSelectedColumnList
+          <ColumnEditor
             items={selectedColumnItems}
-            axis="xy"
-            distance={1}
-            onDelete={name =>
-              props.onChange({ projectId, sort, columnPosition, query: { ...query, columns: query.columns.filter(c => c !== name) } })
-            }
-            onSortEnd={({ oldIndex, newIndex }) => {
-              props.onChange({
-                projectId,
-                sort,
-                columnPosition,
-                query: { ...query, columns: arrayMove(selectedColumnItems, oldIndex, newIndex).map(v => v.name) }
-              });
-            }}
+            onDelete={name => props.onChange({ projectId, sort, query: { ...query, columns: query.columns.filter(c => c !== name) } })}
           />
         </div>
       </Segment>
@@ -371,38 +360,74 @@ export function Query(props: {
       <EditSortModal
         availableColumns={[['#', 'id'], ...querySetting.availableColumns]}
         value={sort}
-        onChange={sort => props.onChange({ projectId, query, sort, columnPosition })}
+        onChange={sort => props.onChange({ projectId, query, sort })}
         open={openSort}
         onClose={() => setOpenSort(false)}
-      />
-
-      <EditColumnPosition
-        columns={[{ label: '#', name: 'id' }, ...selectedColumnItems]}
-        value={columnPosition}
-        onChange={columnPosition => props.onChange({ projectId, query, sort, columnPosition })}
-        open={openColumnPosition}
-        onClose={() => setOpenColumnPosition(false)}
       />
     </Segment.Group>
   );
 }
 
-const SortableSelectedColumnItem = SortableElement((props: { name: string; label: string; onDelete: (name: string) => void }) => (
-  <div className="ui image small label" style={{ margin: '5px 5px 0 0' }}>
-    {props.label}
-    <i className="delete icon" onClick={() => props.onDelete(props.name)}></i>
-  </div>
-));
+const ColumnEditor = (props: { items: { name: string; label: string; position: number }[]; onDelete: (name: string) => void }) => {
+  const [positions, setPositions] = useState<string[]>(props.items.map(item => getColumnName(item.position)));
+  useEffect(() => {
+    setPositions(props.items.map(item => getColumnName(item.position)));
+  }, [props.items]);
 
-const SortableSelectedColumnList = SortableContainer((props: { items: { name: string; label: string }[]; onDelete: (name: string) => void }) => {
+  const updatePosition = _.debounce(function (value, index) {
+    if (value > 'XFD') {
+      notificationControl.showError(translate('excel_column_exceed_xfd'));
+      return;
+    } else {
+      const repeatPositions: { [position: string]: number } = {};
+      for (const p of positions) {
+        if (repeatPositions[p]) {
+          ++repeatPositions[p];
+        } else {
+          repeatPositions[p] = 1;
+        }
+      }
+
+      const repeats: string[] = [];
+      for (const p of Object.keys(repeatPositions)) {
+        if (repeatPositions[p] > 1) {
+          repeats.push(p);
+        }
+      }
+
+      if (repeats.length > 0) {
+        notificationControl.showError(translate('excel_column_repeat'));
+        return;
+      }
+    }
+
+    const newItem = props.items.map((item, i) => ({ ...item, position: getColumnNameNumber(positions[i]) }));
+    //TODO onchange
+  }, 400);
+
   return (
     <div>
-      {props.items.map((value, index) => (
-        <SortableSelectedColumnItem key={`item-${index}`} index={index} {...value} onDelete={props.onDelete} />
-      ))}
+      {props.items.map((value, index) => {
+        return (
+          <div key={value.name} className="ui image small label" style={{ margin: '5px 5px 0 0' }}>
+            <input
+              style={{ width: '2.1rem', marginRight: '0.5rem' }}
+              value={getColumnName(16384)}
+              pattern="[A-Z]"
+              onChange={e => {
+                const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                setPositions(ps => ps.map((p, i) => (i === index ? value : p)));
+                updatePosition(value, index);
+              }}
+            />
+            {value.label}
+            <i className="delete icon" onClick={() => props.onDelete(value.name)}></i>
+          </div>
+        );
+      })}
     </div>
   );
-});
+};
 
 function FilterValues(props: { type: string; operator: string; optionValues: string[][]; values: string[]; onChange: (values: string[]) => void }) {
   switch (props.type) {
@@ -566,95 +591,6 @@ function EditSortModal(props: {
             ))}
           </tbody>
         </table>
-      </Modal.Content>
-    </Modal>
-  );
-}
-
-function EditColumnPosition(props: {
-  value?: ColumnPosition;
-  columns: { name: string; label: string }[];
-  onChange: (value: ColumnPosition) => void;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const { columns, onChange, open, onClose } = props;
-
-  let value = props.value;
-  if (!value) {
-    value = { rowNumber: 1, columnNumbers: [] };
-  }
-
-  let columnNames: string[] = [];
-
-  const labelNames: { [name: string]: string } = {};
-  const rowNumberValues: { [name: string]: number } = {};
-  let lastColumnNumber = 0;
-  for (const c of columns) {
-    if (!labelNames[c.name]) {
-      labelNames[c.name] = c.label;
-      columnNames.push(c.name);
-
-      const columnNumberConfig = value.columnNumbers.find(cn => cn.name === c.name);
-      if (columnNumberConfig) {
-        const currentNumber = columnNumberConfig.columnNumber;
-        rowNumberValues[c.name] = currentNumber;
-        lastColumnNumber = currentNumber + 1;
-      } else {
-        const currentNumber = lastColumnNumber + 1;
-        rowNumberValues[c.name] = currentNumber;
-        lastColumnNumber = currentNumber;
-      }
-    }
-  }
-
-  columnNames = columnNames.sort((a, b) => {
-    const an = rowNumberValues[a];
-    const bn = rowNumberValues[b];
-    if (an == bn) {
-      return 0;
-    }
-    return an > bn ? 1 : -1;
-  });
-
-  return (
-    <Modal open={open} onClose={onClose} closeIcon>
-      <Modal.Header>
-        <T>label_column_position</T>
-      </Modal.Header>
-      <Modal.Content>
-        <Form>
-          <Form.Input
-            value={value.rowNumber}
-            onChange={(e, d) => onChange({ rowNumber: parseInt(d.value), columnNumbers: value.columnNumbers })}
-            label={translate('label_row_number')}
-            inline
-            type="number"
-            min="1"
-            step="1"
-            pattern="\d+"
-          />
-          <Divider />
-          {columnNames.map(columnName => (
-            <Form.Input
-              value={getColumnName(rowNumberValues[columnName])}
-              onChange={(e, d) => {
-                const tempColumnNumbers = columnNames.map(columnName => ({ name: columnName, columnNumber: rowNumberValues[columnName] }));
-                onChange({
-                  rowNumber: value.rowNumber,
-                  columnNumbers: tempColumnNumbers.map(cn =>
-                    cn.name === columnName ? { name: cn.name, columnNumber: getColumnNameNumber(d.value) } : cn
-                  )
-                });
-              }}
-              key={columnName}
-              label={labelNames[columnName]}
-              inline
-              type="text"
-              pattern="[A-Z]+"
-            />
-          ))}
-        </Form>
       </Modal.Content>
     </Modal>
   );

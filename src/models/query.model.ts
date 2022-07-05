@@ -16,7 +16,9 @@ export interface QueryFilter {
 export interface QueryData {
   id: number;
   name: string;
+  startRow: number;
   columns: string[];
+  columnPositions: number[];
   filters: QueryFilter[];
 }
 
@@ -49,14 +51,8 @@ export interface Issues {
 
 export const NO_VALUE_OPERATORS = ['!*', '*', 'nd', 't', 'ld', 'nw', 'w', 'lw', 'l2w', 'nm', 'm', 'lm', 'y', 'o', 'c', '*o', '!o'];
 
-export interface ColumnPosition {
-  rowNumber: number;
-  columnNumbers: { name: string; columnNumber: number }[];
-}
-
 export interface QueryValue {
   projectId: number;
   query: QueryData;
   sort: string[][];
-  columnPosition?: ColumnPosition;
 }

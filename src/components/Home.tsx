@@ -3,12 +3,12 @@ import '../assets/scss/Home.scss';
 import { useLocation, useHistory } from 'react-router-dom';
 import { routerControl } from '../controls/route-control';
 import { Query } from './commons/Query';
-import { ColumnPosition, Issues, QueryData, QueryParams, QueryValue } from '../models/query.model';
+import { Issues, QueryData, QueryParams, QueryValue } from '../models/query.model';
 import { useCurrentUser } from '../hooks/auth-hook';
 import { useCallback, useEffect, useState } from 'react';
 import { httpRequest } from '../http-client';
 import { Dimmer, Loader } from 'semantic-ui-react';
-import { isEmptyOperatorValue, sendCommand } from '../helpers/my_helper';
+import { correctQueryValue, isEmptyOperatorValue, sendCommand } from '../helpers/my_helper';
 import { dialogControl } from '../controls/dialog-control';
 import ExcelList from './commons/ExcelList';
 import { RespCode } from '../models/system.model';
@@ -21,11 +21,11 @@ const QUERY_CACHE_KEY = '_query';
 // before component load
 (window as any).switchQuery = (queryStr: string) => {
   if (queryStr) {
-    cacheQuery = JSON.parse(queryStr);
+    cacheQuery = correctQueryValue(JSON.parse(queryStr));
   }
 };
 
-let cacheQuery: { projectId: number; query: QueryData; sort: string[][] } = JSON.parse(localStorage.getItem(QUERY_CACHE_KEY));
+let cacheQuery: QueryValue = correctQueryValue(JSON.parse(localStorage.getItem(QUERY_CACHE_KEY)));
 
 export default function HomeComponent() {
   const currentUser = useCurrentUser();
@@ -34,7 +34,7 @@ export default function HomeComponent() {
   const history = useHistory();
   const [selectedQuery, setSelectedQuery] = useState<QueryValue>();
   useEffect(() => {
-    const queryObj = cacheQuery || { projectId: 0, query: currentUser.default_query, sort: [] };
+    const queryObj = cacheQuery || correctQueryValue({ projectId: 0, query: currentUser.default_query, sort: [] });
     setSelectedQuery(queryObj);
 
     const queryStr = JSON.stringify(queryObj);
@@ -48,7 +48,7 @@ export default function HomeComponent() {
 
   (window as any).switchQuery = (queryStr: string) => {
     if (queryStr) {
-      setSelectedQuery(JSON.parse(queryStr));
+      setSelectedQuery(correctQueryValue(JSON.parse(queryStr)));
     }
   };
 
@@ -61,7 +61,7 @@ export default function HomeComponent() {
           f: [],
           op: {},
           v: {},
-          c: selectedQuery.query.columns,
+          c: Object.keys(selectedQuery.query.columns),
           sort: formatSort,
           set_filter: 1
         };
@@ -84,7 +84,7 @@ export default function HomeComponent() {
           return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
             .then(resp => {
               if (resp.code === RespCode.OK) {
-                sendCommand('loadIssues', updateColumnPosition(resp.data, selectedQuery.columnPosition), isMerge);
+                sendCommand('loadIssues', updateColumnPosition(resp.data, selectedQuery.query), isMerge);
               } else {
                 notificationControl.showError('Load Issue Error: ' + resp.message);
                 setLoading(false);
@@ -173,7 +173,7 @@ export default function HomeComponent() {
   };
 
   (window as any).changeColumnSetting = (columnNames: string[]) => {
-    setSelectedQuery(s => ({ ...s, query: { ...s.query, columns: columnNames } }));
+    // setSelectedQuery(s => ({ ...s, query: { ...s.query, columns: columnNames } }));
   };
 
   return (
@@ -203,24 +203,15 @@ export default function HomeComponent() {
   );
 }
 
-function updateColumnPosition(data: Issues, columnPosition?: ColumnPosition): Issues {
-  if (!columnPosition || !data.columnSettings) {
+function updateColumnPosition(data: Issues, query: QueryData): Issues {
+  if (!query || !data.columnSettings) {
     return data;
   }
 
-  data.startRowIndex = columnPosition.rowNumber || 1;
-  let lastColumnIndex = 0;
+  data.startRowIndex = query.startRow;
   for (const cs of data.columnSettings) {
-    const cp = columnPosition.columnNumbers?.find(cn => cn.name === cs.name);
-    if (cp) {
-      cs.columnIndex = cp.columnNumber;
-      lastColumnIndex += cp.columnNumber + 1;
-    } else {
-      const currentColumnIndex = lastColumnIndex + 1;
-      cs.columnIndex = currentColumnIndex;
-      cs.columnIndex = currentColumnIndex;
-      lastColumnIndex = currentColumnIndex + 1;
-    }
+    const index = query.columns.indexOf(cs.name);
+    cs.columnIndex = query.columnPositions[index];
   }
 
   return data;

@@ -1,4 +1,5 @@
-import { QueryFilter } from '../models/query.model';
+import _ = require('lodash');
+import { QueryFilter, QueryValue } from '../models/query.model';
 
 export function sendCommand(command: string, ...data: any) {
   const anywin = window as any;
@@ -43,4 +44,16 @@ export function getColumnNameNumber(name: string) {
     result += name[i].charCodeAt(0) - aCode + 1;
   }
   return result;
+}
+
+export function correctQueryValue(query: QueryValue) {
+  if (!query.query.startRow) {
+    query.query.startRow = 1;
+  }
+
+  if (!query.query.columnPositions) {
+    query.query.columnPositions = query.query.columns.map((c, i) => i + 1);
+  }
+
+  return query;
 }

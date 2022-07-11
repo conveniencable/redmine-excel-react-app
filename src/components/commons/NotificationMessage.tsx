@@ -7,8 +7,9 @@ import '../../assets/scss/components/commons/NotificationMessage.scss';
 import _ = require('lodash');
 
 export default class NotificationMessageComponent extends React.PureComponent<any, { messages: NotificationMessage[] }> {
-  state = { messages: [] };
+  state = { messages: [], top: 0 };
   intervalHandler: any;
+  onScroll: any;
 
   constructor(props) {
     super(props);
@@ -20,7 +21,7 @@ export default class NotificationMessageComponent extends React.PureComponent<an
 
   render() {
     return (
-      <div className="notification-messages-container">
+      <div className="notification-messages-container" style={{ top: this.state.top }}>
         <div className="wrapper">
           <AnimatePresence>
             {this.state.messages.map((message, index) => (
@@ -89,9 +90,17 @@ export default class NotificationMessageComponent extends React.PureComponent<an
 
       this.setState({ messages });
     }, 1000);
+
+    this.onScroll = () => {
+      this.setState(s => ({ ...s, top: window.scrollY }));
+    };
+    window.addEventListener('scroll', this.onScroll);
+    this.onScroll();
   }
 
   componentWillUnmount() {
     clearInterval(this.intervalHandler);
+
+    window.removeEventListener('scroll', this.onScroll);
   }
 }

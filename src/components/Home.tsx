@@ -53,15 +53,15 @@ export default function HomeComponent() {
   };
 
   const onLoad = useCallback(
-    (columns: { name: string; label: string }[], sort: string[][], isMerge: boolean) => {
+    (isMerge: boolean) => {
       const startToLoad = () => {
         const formatSort = {};
-        sort.forEach((s, i) => (formatSort[i] = s));
+        selectedQuery.sort.forEach((s, i) => (formatSort[i] = s));
         const params: QueryParams = {
           f: [],
           op: {},
           v: {},
-          c: Object.keys(selectedQuery.query.columns),
+          c: selectedQuery.query.columns,
           sort: formatSort,
           set_filter: 1
         };
@@ -80,7 +80,6 @@ export default function HomeComponent() {
         setLoading(true);
 
         const loadIssues = (offset?: number, limit?: number, total_count?: number) => {
-          console.log('load issue', offset, limit);
           return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
             .then(resp => {
               if (resp.code === RespCode.OK) {

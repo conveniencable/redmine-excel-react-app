@@ -36,6 +36,10 @@ export function getColumnName(num: number) {
 }
 
 export function getColumnNameNumber(name: string) {
+  if (!name) {
+    return 0;
+  }
+
   name = name.toUpperCase();
   let result = 0;
   const aCode = 'A'.charCodeAt(0);
@@ -51,7 +55,11 @@ export function correctQueryValue(query: QueryValue) {
     query.query.startRow = 1;
   }
 
-  if (!query.query.columnPositions) {
+  if (!query.query.columns.includes('id')) {
+    query.query.columns.unshift('id');
+  }
+
+  if (!query.query.columnPositions || query.query.columnPositions.length !== query.query.columns.length) {
     query.query.columnPositions = query.query.columns.map((c, i) => i + 1);
   }
 

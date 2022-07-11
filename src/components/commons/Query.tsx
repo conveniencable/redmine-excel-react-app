@@ -17,7 +17,7 @@ import { notificationControl } from '../../controls/notification-control';
 export function Query(props: {
   value: QueryValue;
   onChange: (value: QueryValue) => void;
-  onLoad: (columns: { name: string; label: string }[], sort: string[][], isMerge: boolean) => void;
+  onLoad: (isMerge: boolean) => void;
   onSave: () => void;
   loadingChange: (loading: boolean) => void;
 }) {
@@ -35,6 +35,7 @@ export function Query(props: {
   const [filteredColumns, setFilteredColumns] = useState([]);
   const [openSort, setOpenSort] = useState(false);
   const [openColumnPosition, setOpenColumnPosition] = useState(false);
+  const [columnErrors, setColumnErrors] = useState<{ [name: string]: string }>({});
 
   useEffect(() => {
     httpRequest<void, QuerySetting>('api/query_settings', 'get')
@@ -85,15 +86,36 @@ export function Query(props: {
     });
   }, [selectedFieldNames, querySetting, projectId]);
 
-  const selectedColumnItems: { name: string; label: string; position: number }[] = [];
-  query.columns.forEach((c, i) => {
-    const option = querySetting.availableColumns.find(o => o[1] === c);
-    if (option) {
-      selectedColumnItems.push({ name: c, label: option[0], position: query.columnPositions[i] });
+  useEffect(() => {
+    const errors: { [name: string]: string } = {};
+    const repeatPositions: { [position: string]: number } = {};
+    for (const p of query.columnPositions) {
+      if (repeatPositions[p]) {
+        ++repeatPositions[p];
+      } else {
+        repeatPositions[p] = 1;
+      }
     }
-  });
+
+    const columnInformations = query.columns.map((c, index) => [c, query.columnPositions[index]]);
+
+    columnInformations.forEach(ci => {
+      if (!ci[1]) {
+        errors[ci[0]] = translate('field_is_required');
+      } else if (repeatPositions[ci[1]] > 1) {
+        errors[ci[0]] = translate('error_excel_column_repeat');
+      } else if (ci[1] > 16384) {
+        // large than XFD
+
+        errors[ci[0]] = translate('error_excel_column_exceed_xfd');
+      }
+    });
+
+    setColumnErrors(errors);
+  }, [query.columns, query.columnPositions]);
 
   const hasInvalidFilter = !!query.filters.find(filter => !NO_VALUE_OPERATORS.includes(filter.operator) && filter.invalid);
+  const hasColumnError = !_.isEmpty(columnErrors);
 
   return (
     <Segment.Group>
@@ -310,7 +332,19 @@ export function Query(props: {
                   <Dropdown.Item
                     onClick={(e, data) => {
                       e.stopPropagation();
-                      props.onChange({ projectId, sort, query: { ...query, columns: [...query.columns, data.value as string] } });
+                      const columns = query.columns;
+                      const columnPositions = query.columnPositions;
+                      if (!columns.includes(data.value as string)) {
+                        props.onChange({
+                          projectId,
+                          sort,
+                          query: {
+                            ...query,
+                            columns: [...columns, data.value as string],
+                            columnPositions: [...columnPositions, columnPositions[columnPositions.length - 1] + 1]
+                          }
+                        });
+                      }
                     }}
                     key={option[1]}
                     value={option[1]}
@@ -322,21 +356,44 @@ export function Query(props: {
               </Dropdown.Menu>
             </Dropdown.Menu>
           </Dropdown>
-          <Input value={query.startRow} type="number" min="1" pattern="\d+" size="mini" label={translate('label_start_row')} style={{ flex: 1 }} />
+          <Input
+            value={query.startRow}
+            onChange={e =>
+              props.onChange({
+                projectId,
+                sort,
+                query: {
+                  ...query,
+                  startRow: parseInt(e.target.value)
+                }
+              })
+            }
+            type="number"
+            min="1"
+            pattern="\d+"
+            size="mini"
+            label={translate('excel_title_row')}
+            style={{ flex: 1 }}
+          />
         </div>
         <div>
           <ColumnEditor
-            items={selectedColumnItems}
-            onDelete={name => props.onChange({ projectId, sort, query: { ...query, columns: query.columns.filter(c => c !== name) } })}
+            availableColumns={querySetting.availableColumns}
+            columns={query.columns}
+            columnPositions={query.columnPositions}
+            errors={columnErrors}
+            onChange={(columns, columnPositions) => {
+              props.onChange({ projectId, sort, query: { ...query, columns, columnPositions } });
+            }}
           />
         </div>
       </Segment>
       <Segment>
         <Button
           color="blue"
-          disabled={hasInvalidFilter}
+          disabled={hasInvalidFilter || hasColumnError}
           onClick={() => {
-            props.onLoad(selectedColumnItems, sort, false);
+            props.onLoad(false);
           }}
         >
           <T>button_load</T>
@@ -344,9 +401,9 @@ export function Query(props: {
 
         <Button
           color="blue"
-          disabled={hasInvalidFilter}
+          disabled={hasInvalidFilter || hasColumnError}
           onClick={() => {
-            props.onLoad(selectedColumnItems, sort, true);
+            props.onLoad(true);
           }}
         >
           <T>button_load_and_merge</T>
@@ -368,60 +425,66 @@ export function Query(props: {
   );
 }
 
-const ColumnEditor = (props: { items: { name: string; label: string; position: number }[]; onDelete: (name: string) => void }) => {
-  const [positions, setPositions] = useState<string[]>(props.items.map(item => getColumnName(item.position)));
+const ColumnEditor = (props: {
+  availableColumns: string[][];
+  columns: string[];
+  columnPositions: number[];
+  errors: { [name: string]: string };
+  onChange: (columns: string[], positions: number[]) => void;
+}) => {
+  const { availableColumns, columns, columnPositions, errors } = props;
+  const [positions, setPositions] = useState<string[]>(columnPositions.map(p => getColumnName(p)));
+  const [list, setList] = useState<{ name: string; label: string }[]>([]);
   useEffect(() => {
-    setPositions(props.items.map(item => getColumnName(item.position)));
-  }, [props.items]);
-
-  const updatePosition = _.debounce(function (value, index) {
-    if (value > 'XFD') {
-      notificationControl.showError(translate('excel_column_exceed_xfd'));
-      return;
-    } else {
-      const repeatPositions: { [position: string]: number } = {};
-      for (const p of positions) {
-        if (repeatPositions[p]) {
-          ++repeatPositions[p];
-        } else {
-          repeatPositions[p] = 1;
-        }
+    const newList: { name: string; label: string }[] = [];
+    columns.forEach((c, i) => {
+      const option = availableColumns.find(o => o[1] === c);
+      if (option) {
+        newList.push({ name: c, label: option[0] });
       }
+    });
+    setList(newList);
+  }, [availableColumns, columns]);
 
-      const repeats: string[] = [];
-      for (const p of Object.keys(repeatPositions)) {
-        if (repeatPositions[p] > 1) {
-          repeats.push(p);
-        }
-      }
-
-      if (repeats.length > 0) {
-        notificationControl.showError(translate('excel_column_repeat'));
-        return;
-      }
-    }
-
-    const newItem = props.items.map((item, i) => ({ ...item, position: getColumnNameNumber(positions[i]) }));
-    //TODO onchange
-  }, 400);
+  useEffect(() => {
+    setPositions(columnPositions.map(p => getColumnName(p)));
+  }, [columnPositions]);
 
   return (
     <div>
-      {props.items.map((value, index) => {
+      {list.map((value, index) => {
         return (
-          <div key={value.name} className="ui image small label" style={{ margin: '5px 5px 0 0' }}>
+          <div
+            key={value.name}
+            title={errors[value.name] || ''}
+            className={`ui image small label ${errors[value.name] ? 'red' : ''}`}
+            style={{ margin: '5px 5px 0 0' }}
+          >
             <input
-              style={{ width: '2.1rem', marginRight: '0.5rem' }}
-              value={getColumnName(16384)}
+              style={{ width: '2.2rem', marginRight: '0.5rem', fontSize: '80%' }}
+              value={positions[index]}
               pattern="[A-Z]"
               onChange={e => {
                 const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
                 setPositions(ps => ps.map((p, i) => (i === index ? value : p)));
-                updatePosition(value, index);
+              }}
+              onBlur={e => {
+                updateColumns(positions, columns, props.onChange);
               }}
             />
             {value.label}
-            <i className="delete icon" onClick={() => props.onDelete(value.name)}></i>
+            {value.name !== 'id' && (
+              <i
+                className="delete icon"
+                onClick={() => {
+                  updateColumns(
+                    positions.filter((v, i) => i !== index),
+                    columns.filter((v, i) => i !== index),
+                    props.onChange
+                  );
+                }}
+              ></i>
+            )}
           </div>
         );
       })}
@@ -594,4 +657,13 @@ function EditSortModal(props: {
       </Modal.Content>
     </Modal>
   );
+}
+
+function updateColumns(positions: string[], columns: string[], onChange: (columns: string[], positions: number[]) => void) {
+  const columnInformations = columns
+    .map((c, index) => [c, getColumnNameNumber(positions[index])])
+    .sort((a, b) => (a[1] === b[1] ? 0 : a[1] > b[1] ? 1 : -1));
+
+  const newColumnPositions = columnInformations.map(v => v[1]) as number[];
+  onChange(columnInformations.map(v => v[0]) as string[], newColumnPositions);
 }

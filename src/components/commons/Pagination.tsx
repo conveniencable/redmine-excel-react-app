@@ -1,9 +1,9 @@
 import * as React from 'react';
-import * as classnames from 'classnames';
+import classNames from 'classNames';
 
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { Page } from '../../models/system.model';
-import { Form, Select } from 'semantic-ui-react';
+import { Select } from 'semantic-ui-react';
 
 export default class Pagination<D> extends React.PureComponent<
   {
@@ -43,7 +43,7 @@ export default class Pagination<D> extends React.PureComponent<
     return (
       <div className="ui right floated compact pagination menu">
         <a
-          className={classnames('icon item', {
+          className={classNames('icon item', {
             disabled: page.pageIndex === 0
           })}
           onClick={e => onChange(0, page.pageSize)}
@@ -51,7 +51,7 @@ export default class Pagination<D> extends React.PureComponent<
           <i className="angle double left icon"></i>
         </a>
         <a
-          className={classnames('icon item', {
+          className={classNames('icon item', {
             disabled: page.pageIndex === 0
           })}
           onClick={e => onChange(page.pageIndex - 1, page.pageSize)}
@@ -62,7 +62,7 @@ export default class Pagination<D> extends React.PureComponent<
           return (
             <a
               key={n}
-              className={classnames('item', { blue: n === page.pageIndex }, { disabled: n === page.pageIndex })}
+              className={classNames('item', { blue: n === page.pageIndex }, { disabled: n === page.pageIndex })}
               onClick={e => onChange(n, page.pageSize)}
             >
               {n + 1}
@@ -71,7 +71,7 @@ export default class Pagination<D> extends React.PureComponent<
         })}
 
         <a
-          className={classnames('icon item', {
+          className={classNames('icon item', {
             disabled: page.pageIndex === totalPage - 1
           })}
           onClick={e => onChange(page.pageIndex + 1, page.pageSize)}
@@ -79,7 +79,7 @@ export default class Pagination<D> extends React.PureComponent<
           <i className="angle right icon"></i>
         </a>
         <a
-          className={classnames('icon item', {
+          className={classNames('icon item', {
             disabled: page.pageIndex === totalPage - 1
           })}
           onClick={e => onChange(totalPage - 1, page.pageSize)}

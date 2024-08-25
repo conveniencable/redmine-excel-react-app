@@ -15,7 +15,7 @@ export default function Top(props: { user: User; selectedProjectIds: number[]; o
 
   return (
     <div className="top-bar">
-      <Menu borderless fluid>
+      <Menu fluid size="mini" compact>
         <Menu.Item position="right" style={{ alignItems: 'start' }}>
           {user.name}
           <Dropdown icon="angle down" loading={loggingOut}>

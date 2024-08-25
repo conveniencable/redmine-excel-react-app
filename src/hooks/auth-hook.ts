@@ -1,7 +1,7 @@
 import { ChangeableSubject, RespCode } from '../models/system.model';
 import { useState, useEffect } from 'react';
 import { accessToken, httpRequest, useHttpRequest } from '../http-client';
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { routerControl } from '../controls/route-control';
 import { useXForm } from './form-hook';
 import { LoginData, User } from '../models/user.model';
@@ -36,7 +36,7 @@ export function useCurrentUser(): User {
 }
 
 export function useLogin() {
-  const xForm = useXForm<LoginData>('api/logged_in', 'post');
+  const xForm = useXForm<LoginData>('/api/logged_in', 'post');
 
   useEffect(() => {
     if (xForm.success) {
@@ -51,7 +51,7 @@ export function useLogin() {
 }
 
 export function tryToLogin(login: string, password: string) {
-  httpRequest<LoginData, any>('api/logged_in', 'post', { login, password }).then(resp => {
+  httpRequest<LoginData, any>('/api/logged_in', 'post', { login, password }).then(resp => {
     if (resp.code == RespCode.OK) {
       updateCurrentUser(resp.data);
       routerControl.toReturnUrl();
@@ -60,7 +60,7 @@ export function tryToLogin(login: string, password: string) {
 }
 
 export function useLoggedOut() {
-  const { httpState, sendRequest } = useHttpRequest('api/logged_out', 'post');
+  const { httpState, sendRequest } = useHttpRequest('/api/logged_out', 'post');
 
   useEffect(() => {
     if (httpState.resp && httpState.resp.code === RespCode.OK) {

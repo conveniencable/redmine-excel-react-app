@@ -3,12 +3,11 @@ import { Icon } from 'semantic-ui-react';
 import '../../assets/scss/components/commons/XTable.scss';
 import { DataType, ValueType } from '../../models/commons.model';
 import { Page } from '../../models/system.model';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import moment = require('moment');
 import { useTable } from 'react-table';
 import Pagination from './Pagination';
 import { useStickyTableLayout, useDeepEffect } from '../../hooks/util-hooks';
-import T from './T';
 import classNames = require('classnames');
 
 export interface XTableColumn {

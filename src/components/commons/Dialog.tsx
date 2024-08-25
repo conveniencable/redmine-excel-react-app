@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DialogMessage, dialogControl } from '../../controls/dialog-control';
 import { Modal, Button } from 'semantic-ui-react';
 import T from './T';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 
 export function DialogComponent() {
   const [messages, setMessages] = React.useState<DialogMessage[]>([]);
@@ -50,7 +50,7 @@ export function DialogComponent() {
             <Modal.Header>
               <T message={message.title}></T>
             </Modal.Header>
-            <Modal.Content>{_.isString(message.message) ? message.message : <T {...message.message}></T>}</Modal.Content>
+            <Modal.Content>{_.isString(message.message) ? message.message : <T {...(message.message as any)}></T>}</Modal.Content>
             <Modal.Actions>
               {message.actions &&
                 message.actions.map((action, index) => {

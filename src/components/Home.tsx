@@ -80,7 +80,7 @@ export default function HomeComponent() {
         setLoading(true);
 
         const loadIssues = (offset?: number, limit?: number, total_count?: number) => {
-          return httpRequest<QueryParams, Issues>('api/issues', 'get', { ...params, offset, limit })
+          return httpRequest<QueryParams, Issues>('/api/issues', 'get', { ...params, offset, limit })
             .then(resp => {
               if (resp.code === RespCode.OK) {
                 sendCommand('loadIssues', updateColumnPosition(resp.data, selectedQuery.query), isMerge);
@@ -118,7 +118,7 @@ export default function HomeComponent() {
       sendCommand('beforeLoadIssue', isMerge);
 
       (window as any).afterLoadIssue = (issue_ids: number[]) => {
-        httpRequest('api/after_load_issue', 'post', { issue_ids })
+        httpRequest('/api/after_load_issue', 'post', { issue_ids })
           .then(resp => {
             if (resp.code === RespCode.OK) {
               sendCommand('afterLoadIssue', resp.data);
@@ -141,7 +141,7 @@ export default function HomeComponent() {
     sendCommand('saveIssues');
 
     (window as any).saveToRedmine = (headers: string[], issues: string[][], project_id: string, id_to_line_no: string[]) => {
-      httpRequest('api/issues', 'post', { headers, issues, project_id, id_to_line_no }).then(resp => {
+      httpRequest('/api/issues', 'post', { headers, issues, project_id, id_to_line_no }).then(resp => {
         if (resp.code == RespCode.OK) {
           sendCommand('afterSaveIssues', resp.data);
         } else {
@@ -161,7 +161,7 @@ export default function HomeComponent() {
 
   (window as any).deleteIssue = (id: number) => {
     setLoading(true);
-    httpRequest('api/issues', 'delete', { id }).then(resp => {
+    httpRequest('/api/issues', 'delete', { id }).then(resp => {
       if (resp.code == RespCode.OK) {
         sendCommand('deleteIssue', resp.data);
       } else {

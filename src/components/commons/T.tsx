@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as _ from 'lodash';
 
 const LANG = (window as any)['RX__LANG'] || {};
 

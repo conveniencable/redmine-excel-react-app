@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, Header, Message, Segment, Input } from 'semantic-ui-react';
+import { Button, Form, Grid, Header, Segment } from 'semantic-ui-react';
 
 import { XFormInput, Validators } from './commons/XForm';
 import { useLocation, useHistory } from 'react-router-dom';

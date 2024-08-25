@@ -2,15 +2,16 @@ import * as React from 'react';
 import { BrowserRouter as Router, Switch, Route, NavLink } from 'react-router-dom';
 import Login from './components/Login';
 import Home from './components/Home';
+import { redminePluginUrl } from './http-client';
 
 export const routesConfig = [
   {
-    path: '/redmine_excel_connector/login',
+    path: redminePluginUrl('/login'),
     exact: true,
     component: Login
   },
   {
-    path: '/redmine_excel_connector',
+    path: redminePluginUrl('/'),
     exact: true,
     component: Home
   }

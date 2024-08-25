@@ -43,18 +43,25 @@ export const axios = Axios.create({
 });
 
 axios.interceptors.request.use(config => {
-  config.headers.common[AUTH_HEADER_KEY] = accessToken.token;
+  config.headers[AUTH_HEADER_KEY] = accessToken.token;
 
   return config;
 });
 
 export const accessToken = new AccessToken();
 
-export function httpRequest<D, R>(url: string, method: HttpMethod, data: D = null, prefix = '/redmine_excel_connector/'): Promise<Resp<R>> {
+const RELATIVE_URL_ROOT = window.location.pathname.split('/redmine_excel_connector')[0] + '/redmine_excel_connector';
+console.log('current path name', window.location.pathname);
+console.log('relative url root', RELATIVE_URL_ROOT);
+export function redminePluginUrl(url: string) {
+  return RELATIVE_URL_ROOT + url;
+}
+
+export function httpRequest<D, R>(url: string, method: HttpMethod, data: D = null): Promise<Resp<R>> {
   const { promise: result, resolve, reject } = xhelper.createPromise<Resp<R>>();
 
   const reqParams: AxiosRequestConfig = {
-    url: prefix + url,
+    url: redminePluginUrl(url),
     method
   };
 
@@ -113,7 +120,7 @@ export function httpRequest<D, R>(url: string, method: HttpMethod, data: D = nul
             reject(resp);
             return;
           default:
-            notificationControl.showError('Unknown Error', {
+            notificationControl.showError('Unknown Error 1', {
               message: resp.message
             });
             reject(resp);
@@ -130,11 +137,12 @@ export function httpRequest<D, R>(url: string, method: HttpMethod, data: D = nul
       if (xhr && xhr.response) {
         const message = xhr.response.statusText;
 
-        notificationControl.showError(xhr.response.status === 504 ? 'Network Error' : 'Unknown Error', {
+        notificationControl.showError(xhr.response.status === 504 ? 'Network Error' : 'Unknown Error 2', {
           message
         });
       } else {
-        notificationControl.showError('Unknown Error', {
+        console.error('unknow error', xhr);
+        notificationControl.showError('Unknown Error 3', {
           message: xhr
         });
       }
@@ -147,8 +155,7 @@ export function httpRequest<D, R>(url: string, method: HttpMethod, data: D = nul
 
 export function useHttpRequest<D, R>(
   url: string,
-  method: HttpMethod,
-  prefix = '/redmine_excel_connector/'
+  method: HttpMethod
 ): { httpState: HttpRequestState<R>; sendRequest: (data: D) => void; reset: () => void } {
   const [httpState, setHttpState] = useState<HttpRequestState<R>>({
     isStarted: false,
@@ -160,7 +167,7 @@ export function useHttpRequest<D, R>(
   const sendRequest = useCallback(
     (data: D) => {
       setHttpState(originalState => ({ ...originalState, isStarted: true, loading: true }));
-      httpRequest<D, R>(url, method, data, prefix).then(
+      httpRequest<D, R>(url, method, data).then(
         resp => {
           setHttpState(originalState => ({ ...originalState, resp, success: true, loading: false }));
         },

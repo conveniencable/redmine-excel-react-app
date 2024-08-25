@@ -4,7 +4,7 @@ import { notificationControl, NotificationMessage } from '../../controls/notific
 import T from './T';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../../assets/scss/components/commons/NotificationMessage.scss';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 
 export default class NotificationMessageComponent extends React.PureComponent<any, { messages: NotificationMessage[] }> {
   state = { messages: [], top: 0 };

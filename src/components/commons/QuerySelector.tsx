@@ -17,7 +17,7 @@ export default function QuerySelector(props: { projectId: number; queryId: numbe
 
   useEffect(() => {
     setLoading(true);
-    httpRequest<{ project_id: number }, QueryData[]>('api/queries', 'get', { project_id: props.projectId || null })
+    httpRequest<{ project_id: number }, QueryData[]>('/api/queries', 'get', { project_id: props.projectId || null })
       .then(data => {
         setQueries(data.data);
       })
@@ -26,7 +26,7 @@ export default function QuerySelector(props: { projectId: number; queryId: numbe
 
   return (
     <div className={classNames('ui labeled input mini compact', { loading })}>
-      <div className="ui label">
+      <div className="ui mini label">
         <T>query</T>
       </div>
       <Dropdown

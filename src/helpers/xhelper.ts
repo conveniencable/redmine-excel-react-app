@@ -1,6 +1,6 @@
 import { XTableColumn } from '../components/commons/XTable';
 import { ValueType } from '../models/commons.model';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 
 class XHelper {
   public createPromise<V>() {

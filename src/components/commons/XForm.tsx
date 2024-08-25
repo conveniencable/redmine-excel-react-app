@@ -1,15 +1,12 @@
 import * as React from 'react';
-import { Form, FormFieldProps, DropdownItemProps, Modal, Button, Dropdown } from 'semantic-ui-react';
+import { Form, FormFieldProps, Modal, Button } from 'semantic-ui-react';
 import '../../assets/scss/components/commons/XForm.scss';
 import { XFormControl, useXForm, InvalidErrorContent } from '../../hooks/form-hook';
 import { DataType, ValueType } from '../../models/commons.model';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import T from './T';
 import { HttpMethod } from '../../models/system.model';
 import { notificationControl } from '../../controls/notification-control';
-import { httpRequest } from '../../http-client';
-import classNames = require('classnames');
-import xhelper from '../../helpers/xhelper';
 import { XMultipleInput } from './forms/MultipleInput';
 
 export interface InputTypeProperties {
@@ -344,25 +341,6 @@ function DateTimeInput(props: InputTypeProperties) {
   );
 }
 
-function EnumInput(props: InputTypeProperties) {
-  const options: DropdownItemProps[] = props.dataType.enumValues.map((value, i) => ({
-    text: props.dataType.enumTexts[i],
-    value
-  }));
-
-  return (
-    <Form.Select
-      options={options}
-      value={props.value}
-      onChange={(e, data) => props.onChange(props.name, data.value)}
-      label={props.label}
-      placeholder={props.placeholder}
-      {...props.options}
-      multiple={props.dataType.isArray || false}
-      error={props.error}
-    ></Form.Select>
-  );
-}
 
 function FileInput(props: InputTypeProperties) {
   // TODO
@@ -385,129 +363,8 @@ function isRequired(props: InputFieldProperties) {
   return false;
 }
 
-function XMultipleInput2(props: InputTypeProperties & { inputType: any }) {
-  const [options, setOptions] = React.useState([]);
 
-  React.useEffect(() => {
-    setOptions((props.value || []).map(v => ({ text: v, value: v })));
-  }, [props.value]);
 
-  return (
-    <Form.Field
-      {..._.omit(props, 'inputType', 'options', 'name', 'onChange')}
-      {...props.options}
-      control={Dropdown}
-      options={options}
-      search
-      selection
-      allowAdditions
-      multiple
-      searchInput={props.inputType}
-      onAddItem={(e, data) => setOptions(originalValue => [...originalValue, { text: data.value, value: data.value }])}
-      onChange={(e, data) => {
-        setOptions((data.value as any[]).map(v => ({ text: v, value: v })));
-        props.onChange(props.name, data.value);
-      }}
-      noResultsMessage=""
-    ></Form.Field>
-  );
-}
-
-function XSearchInput(props: InputTypeProperties & { url: string; method: HttpMethod }) {
-  const [config, setConfig] = React.useState<{
-    loading: boolean;
-    options: { text: any; value: any }[];
-  }>({ loading: false, options: [] });
-
-  return (
-    <Dropdown
-      options={config.options}
-      loading={config.loading}
-      placeholder={props.placeholder || props.label}
-      search
-      selection
-      multiple={props.dataType.isArray || false}
-      value={props.value}
-      onChange={(e, data) => {
-        props.onChange(props.name, data.value);
-      }}
-      onSearchChange={React.useCallback(
-        _.debounce(
-          (e, data) => {
-            setConfig(originalConfig => ({ ...originalConfig, loading: true }));
-            let selectedValues = null;
-            if (props.value) {
-              if (!_.isArray(props.value)) {
-                selectedValues = [props.value];
-              } else {
-                selectedValues = props.value;
-              }
-            }
-            httpRequest<any, any>(props.url, props.method, { q: data.searchQuery, selectedValues })
-              .then(resp => {
-                setConfig(originalConfig => ({ options: resp.data, loading: false }));
-              })
-              .catch(e => {
-                setConfig(originalConfig => ({ ...originalConfig, loading: false }));
-              });
-          },
-          500,
-          { leading: true }
-        ),
-        []
-      )}
-      noResultsMessage=""
-    />
-  );
-}
-
-function XSearchTreeInput(props: InputTypeProperties & { url: string; method: HttpMethod }) {
-  const [config, setConfig] = React.useState<{
-    loading: boolean;
-    options: { text: any; value: any }[];
-  }>({ loading: false, options: [] });
-
-  return (
-    <Dropdown
-      options={config.options}
-      loading={config.loading}
-      placeholder={props.placeholder || props.label}
-      search
-      selection
-      multiple={props.dataType.isArray || false}
-      value={props.value}
-      onChange={(e, data) => {
-        props.onChange(props.name, data.value);
-      }}
-      onSearchChange={React.useCallback(
-        _.debounce(
-          (e, data) => {
-            setConfig(originalConfig => ({ ...originalConfig, loading: true }));
-            let selectedValues = null;
-            if (props.value) {
-              if (!_.isArray(props.value)) {
-                selectedValues = [props.value];
-              } else {
-                selectedValues = props.value;
-              }
-            }
-            httpRequest<any, any>(props.url, props.method, { q: data.searchQuery, selectedValues })
-              .then(resp => {
-                setConfig(originalConfig => ({ options: resp.data, loading: false }));
-              })
-              .catch(e => {
-                setConfig(originalConfig => ({ ...originalConfig, loading: false }));
-              });
-          },
-          500,
-          { leading: true }
-        ),
-        []
-      )}
-      noResultsMessage=""
-    />
-  );
-}
 
 export function generateInputProperties(dataType: DataType) {
   const props = {} as any;

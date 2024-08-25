@@ -1,18 +1,12 @@
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { Button, Divider, Dropdown, Form, Input, Label, Modal, Segment, Select, Table } from 'semantic-ui-react';
+import { Button, Dropdown, Input, Label, Modal, Segment, Select } from 'semantic-ui-react';
 import { httpRequest } from '../../http-client';
 import { NO_VALUE_OPERATORS, QueryData, QueryFilter, QuerySetting, QueryValue } from '../../models/query.model';
-import * as arrayMove from 'array-move';
 import T, { translate } from './T';
 import QuerySelector from './QuerySelector';
-import { values } from 'lodash';
-import { settings } from 'cluster';
 import { correctQueryValue, getColumnName, getColumnNameNumber } from '../../helpers/my_helper';
-import { value } from 'popmotion';
-import { useCallback } from 'hoist-non-react-statics/node_modules/@types/react';
-import { notificationControl } from '../../controls/notification-control';
 
 export function Query(props: {
   value: QueryValue;
@@ -38,7 +32,7 @@ export function Query(props: {
   const [columnErrors, setColumnErrors] = useState<{ [name: string]: string }>({});
 
   useEffect(() => {
-    httpRequest<void, QuerySetting>('api/query_settings', 'get')
+    httpRequest<void, QuerySetting>('/api/query_settings', 'get')
       .then(data => {
         const setting = data.data;
         setQuerySetting(setting);
@@ -70,7 +64,7 @@ export function Query(props: {
         }
 
         if (filterOptions.remote && !filterOptions.values) {
-          return httpRequest<any, [string, string][]>('api/filter_values', 'get', {
+          return httpRequest<any, [string, string][]>('/api/filter_values', 'get', {
             name: fieldName,
             project_id: projectId
           }).then(data => {
@@ -104,7 +98,7 @@ export function Query(props: {
         errors[ci[0]] = translate('field_is_required');
       } else if (repeatPositions[ci[1]] > 1) {
         errors[ci[0]] = translate('error_excel_column_repeat');
-      } else if (ci[1] > 16384) {
+      } else if (_.isNumber(ci[1]) && ci[1] > 16384) {
         // large than XFD
 
         errors[ci[0]] = translate('error_excel_column_exceed_xfd');
@@ -118,7 +112,7 @@ export function Query(props: {
   const hasColumnError = !_.isEmpty(columnErrors);
 
   return (
-    <Segment.Group>
+    <Segment.Group size="mini" compact>
       <Segment attached="top">
         <QuerySelector
           projectId={projectId}
@@ -395,6 +389,7 @@ export function Query(props: {
           onClick={() => {
             props.onLoad(false);
           }}
+          size="mini"
         >
           <T>button_load</T>
         </Button>
@@ -405,11 +400,12 @@ export function Query(props: {
           onClick={() => {
             props.onLoad(true);
           }}
+          size="mini"
         >
           <T>button_load_and_merge</T>
         </Button>
 
-        <Button color="blue" onClick={props.onSave}>
+        <Button color="blue" onClick={props.onSave} size="mini">
           <T>button_save</T>
         </Button>
       </Segment>

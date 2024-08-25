@@ -1,6 +1,5 @@
 // shared config (dev and prod)
 const { resolve } = require('path');
-const { CheckerPlugin } = require('awesome-typescript-loader');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackHarddiskPlugin = require('html-webpack-harddisk-plugin');
 
@@ -21,7 +20,7 @@ module.exports = {
       },
       {
         test: /\.tsx?$/,
-        use: ['babel-loader', 'awesome-typescript-loader']
+        use: ['babel-loader', 'ts-loader']
       },
       {
         test: /\.css$/,
@@ -29,20 +28,41 @@ module.exports = {
       },
       {
         test: /\.(scss|sass)$/,
-        loaders: ['style-loader', { loader: 'css-loader', options: { importLoaders: 1 } }, 'sass-loader']
+        use: ['style-loader', { loader: 'css-loader', options: { importLoaders: 1 } }, 'sass-loader']
       },
       {
         test: /\.(jpe?g|png|gif|svg)$/i,
-        loaders: [
-          'file-loader?hash=sha512&digest=hex&name=img/[hash].[ext]',
-          'image-webpack-loader?bypassOnDebug&optipng.optimizationLevel=7&gifsicle.interlaced=false'
+        use: [
+          'file-loader',
+          {
+            loader: 'image-webpack-loader',
+            options: {
+              mozjpeg: {
+                progressive: true,
+              },
+              // optipng.enabled: false will disable optipng
+              optipng: {
+                enabled: false,
+              },
+              pngquant: {
+                quality: [0.65, 0.90],
+                speed: 4
+              },
+              gifsicle: {
+                interlaced: false,
+              },
+              // the webp option will enable WEBP
+              webp: {
+                quality: 75
+              }
+            }
+          },
         ]
       },
       { test: /\.(ttf|eot|svg|woff|woff2)$/, use: 'file-loader' }
     ]
   },
   plugins: [
-    new CheckerPlugin(),
     new HtmlWebpackPlugin({
       template: 'index.html.ejs',
       filename: resolve(__dirname, redmine_plugin_dir, 'app/views/redmine_excel_connector/index.html.erb'),

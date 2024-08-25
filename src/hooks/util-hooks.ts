@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState, useRef, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import { HttpMethod, ChangeableSubject } from '../models/system.model';
 import { httpRequest } from '../http-client';
 

@@ -1,4 +1,4 @@
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import { QueryFilter, QueryValue } from '../models/query.model';
 
 export function sendCommand(command: string, ...data: any) {
@@ -50,7 +50,11 @@ export function getColumnNameNumber(name: string) {
   return result;
 }
 
-export function correctQueryValue(query: QueryValue) {
+export function correctQueryValue(query?: QueryValue) {
+  if (!query) {
+    return query;
+  }
+
   if (!query.query.startRow) {
     query.query.startRow = 1;
   }

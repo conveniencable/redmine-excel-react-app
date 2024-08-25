@@ -1,7 +1,6 @@
 // production config
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 const { resolve } = require('path');
-
 const commonConfig = require('./common');
 
 const redmine_plugin_dir = commonConfig.redmine_plugin_dir;
@@ -11,12 +10,12 @@ module.exports = merge(commonConfig, {
   mode: 'production',
   entry: {
     app: './index.tsx',
-    vendor: ['semantic-ui-react', 'sockjs-client', 'semantic-ui-css/semantic.min.css', 'lodash', 'moment', 'react-table', 'framer-motion']
+    vendor: ['semantic-ui-react', 'semantic-ui-css/semantic.min.css', 'lodash-es', 'moment', 'react-table', 'framer-motion']
   },
   output: {
     filename: 'js/bundle.[name].min.js',
     path: resolve(__dirname, redmine_plugin_dir, 'assets/react-dist'),
-    publicPath: '/plugin_assets/redmine_excel_connector/react-dist/'
+    publicPath: 'plugin_assets/redmine_excel_connector/react-dist/'
   },
   devtool: 'source-map',
   plugins: []

@@ -1,3 +1,5 @@
+import { redminePluginUrl } from '../http-client';
+
 export interface NavigationLink {
   label: string;
   routerLink?: string;
@@ -26,22 +28,23 @@ class RouterControl {
 
   public toLoggedIn() {
     const currentUrl = this.getCurrent();
-    if (currentUrl === '/redmine_excel_connector/login') {
+    if (currentUrl.endsWith('/login')) {
       return;
     }
 
     this.returnUrl = currentUrl;
-    this.push('/redmine_excel_connector/login');
+    console.log('xxx', redminePluginUrl('/login'))
+    this.push(redminePluginUrl('/login'));
   }
 
   public toReturnUrl() {
-    this.pusher(this.returnUrl || '/redmine_excel_connector');
+    this.pusher(this.returnUrl || redminePluginUrl('/'));
     this.returnUrl = '';
   }
 
   toChangePassword() {
     this.returnUrl = this.getCurrent();
-    this.push('/redmine_excel_connector/change-password');
+    this.push(redminePluginUrl('/change-password'));
   }
 
   public registerOnNavigationLinksChange(onNavigationLinksChange: (value: NavigationLink[]) => void) {

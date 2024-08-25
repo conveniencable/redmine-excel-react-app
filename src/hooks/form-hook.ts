@@ -1,8 +1,8 @@
 import { HttpMethod, RespCode, Invalid } from '../models/system.model';
 import { HttpRequestState, useHttpRequest } from '../http-client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useDeepEffect } from './util-hooks';
-import _ = require('lodash');
+import * as _ from 'lodash-es';
 import { XValidator, Validators } from '../components/commons/XForm';
 
 export type InvalidErrorContent = {
@@ -175,7 +175,7 @@ export class XFormControl<D> {
   }
 }
 
-export function useXForm<D>(url, method: HttpMethod, initFormData: Partial<D> = {}): XFormControl<D> {
+export function useXForm<D>(url: string, method: HttpMethod, initFormData: Partial<D> = {}): XFormControl<D> {
   const [formData, setFormData] = useState<D>(initFormData as any);
   const [formErrors, setFormErrors] = useState<InvalidErrorContent[]>([]);
   const [fieldsErrors, setFieldsErrors] = useState<FieldsInvalidErrors>({});
@@ -199,7 +199,7 @@ export function useXForm<D>(url, method: HttpMethod, initFormData: Partial<D> = 
       const tempFormErrors: InvalidErrorContent[] = [];
 
       if (httpStateRef.current.resp.code === RespCode.Invalid) {
-        for (const inv of (httpStateRef.current.resp.data as any) as Invalid[]) {
+        for (const inv of httpStateRef.current.resp.data as Invalid[]) {
           const error: InvalidErrorContent = {
             message: inv.message,
             parameters: inv.params
